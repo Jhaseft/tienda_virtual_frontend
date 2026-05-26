@@ -20,33 +20,33 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        // BACKEND: descomentar cuando el backend implemente POST /auth/login
-        // const res = await fetch(
-        //   `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
-        //   {
-        //     method: "POST",
-        //     headers: { "Content-Type": "application/json" },
-        //     body: JSON.stringify({
-        //       email: credentials.email,
-        //       password: credentials.password,
-        //     }),
-        //   }
-        // )
-        // if (!res.ok) {
-        //   const { message } = await res.json()
-        //   throw new Error(message ?? "Credenciales inválidas")
-        // }
-        // const { token, user } = await res.json()
-        // return {
-        //   id: user.id,
-        //   email: user.email,
-        //   name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
-        //   image: user.avatarUrl ?? null,
-        //   role: user.role,
-        //   backendToken: token,
-        // }
-
-        throw new Error("Backend aún no implementado")
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+          }
+        )
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error((body as { message?: string }).message ?? "Credenciales inválidas")
+        }
+        const { token, user } = await res.json() as {
+          token: string
+          user: { id: string; email: string; firstName?: string; lastName?: string; avatarUrl?: string; role: string }
+        }
+        return {
+          id: user.id,
+          email: user.email,
+          name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
+          image: user.avatarUrl ?? null,
+          role: user.role,
+          backendToken: token,
+        }
       },
     }),
 
@@ -67,22 +67,29 @@ export const authOptions: AuthOptions = {
         token.backendToken = user.backendToken ?? ""
       }
 
-      if (account?.provider === "google") {
-        // BACKEND: intercambiar el id_token de Google por un JWT del backend
-        // const res = await fetch(
-        //   `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`,
-        //   {
-        //     method: "POST",
-        //     headers: { "Content-Type": "application/json" },
-        //     body: JSON.stringify({ idToken: account.id_token }),
-        //   }
-        // )
-        // const { token: backendToken, user: backendUser } = await res.json()
-        // token.id = backendUser.id
-        // token.role = backendUser.role
-        // token.backendToken = backendToken
-        token.role = "CLIENT"
-        token.backendToken = ""
+      if (account?.provider === "google" && user) {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              googleId: account.providerAccountId,
+              email: user.email,
+              name: user.name,
+              picture: user.image,
+            }),
+          }
+        )
+        if (res.ok) {
+          const { token: backendToken, user: backendUser } = await res.json() as {
+            token: string
+            user: { id: string; role: string }
+          }
+          token.id = backendUser.id
+          token.role = backendUser.role
+          token.backendToken = backendToken
+        }
       }
 
       return token
