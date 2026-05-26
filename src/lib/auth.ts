@@ -20,7 +20,7 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        // TODO: descomentar cuando el backend implemente POST /auth/login
+        // BACKEND: descomentar cuando el backend implemente POST /auth/login
         // const res = await fetch(
         //   `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
         //   {
@@ -68,7 +68,7 @@ export const authOptions: AuthOptions = {
       }
 
       if (account?.provider === "google") {
-        // TODO: intercambiar el id_token de Google por un JWT del backend
+        // BACKEND: intercambiar el id_token de Google por un JWT del backend
         // const res = await fetch(
         //   `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`,
         //   {
@@ -89,9 +89,9 @@ export const authOptions: AuthOptions = {
     },
 
     async session({ session, token }) {
-      session.user.id = token.id as string
-      session.user.role = token.role as "CLIENT" | "VENDOR" | "ADMIN"
-      session.user.backendToken = token.backendToken as string
+      session.user.id = token.id
+      session.user.role = token.role
+      session.user.backendToken = token.backendToken
       return session
     },
   },

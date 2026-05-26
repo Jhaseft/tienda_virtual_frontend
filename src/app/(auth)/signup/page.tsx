@@ -1,227 +1,479 @@
 "use client"
 
+import { Suspense, useState, useEffect, Fragment } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { useActionState } from "react"
-import Link from "next/link"
+import OtpInput from "@/components/ui/OtpInput"
 
-type FormState =
-  | {
-      errors?: {
-        firstName?: string[]
-        email?: string[]
-        phoneNumber?: string[]
-        password?: string[]
-      }
-      message?: string
-    }
-  | undefined
+type Method = "google" | "email"
+type Step = 2 | 3
 
-async function registerAction(
-  _prev: FormState,
-  formData: FormData
-): Promise<FormState> {
-  const firstName = (formData.get("firstName") as string)?.trim()
-  const email = (formData.get("email") as string)?.trim()
-  const phoneNumber = (formData.get("phoneNumber") as string)?.trim()
-  const password = formData.get("password") as string
-
-  const errors: FormState["errors"] = {}
-  if (!firstName) errors.firstName = ["El nombre es obligatorio."]
-  if (!email) errors.email = ["El email es obligatorio."]
-  if (!phoneNumber) errors.phoneNumber = ["El teléfono es obligatorio."]
-  if (!password || password.length < 8)
-    errors.password = ["Mínimo 8 caracteres."]
-
-  if (Object.keys(errors).length) return { errors }
-
-  // TODO: llamar al backend cuando implemente POST /auth/register
-  // const res = await fetch(
-  //   `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register`,
-  //   {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify({ firstName, email, phoneNumber, password }),
-  //   }
-  // )
-  // if (!res.ok) {
-  //   const data = await res.json()
-  //   return { message: data.message ?? "Error al registrar." }
-  // }
-  // return undefined  // éxito → el caller redirige
-
-  return { message: "Backend aún no implementado." }
+interface StepData {
+  firstName: string
+  lastName: string
+  phoneCountry: string
+  phoneNumber: string
+  email: string
 }
 
-export default function SignUpPage() {
-  const router = useRouter()
+const COUNTRIES = [
+  { code: "+591", flag: "🇧🇴" },
+  { code: "+57",  flag: "🇨🇴" },
+  { code: "+54",  flag: "🇦🇷" },
+  { code: "+52",  flag: "🇲🇽" },
+  { code: "+51",  flag: "🇵🇪" },
+  { code: "+56",  flag: "🇨🇱" },
+  { code: "+55",  flag: "🇧🇷" },
+]
 
-  const [state, action, pending] = useActionState(
-    async (prev: FormState, formData: FormData) => {
-      const result = await registerAction(prev, formData)
-      if (!result) router.push("/signin")
-      return result
-    },
-    undefined
+/* ── Countdown hook ── */
+function useCountdown(seconds: number) {
+  const [left, setLeft] = useState(seconds)
+
+  useEffect(() => {
+    if (left === 0) return
+    const t = setInterval(() => setLeft((s) => s - 1), 1000)
+    return () => clearInterval(t)
+  }, [left])
+
+  const formatted = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`
+  const restart = () => setLeft(seconds)
+  return { left, formatted, restart }
+}
+
+/* ── ProgressBar ── */
+function ProgressBar({ current }: Readonly<{ current: Step }>) {
+  return (
+    <div className="flex flex-col items-center mb-6">
+      <p className="text-xs text-gray-500 mb-3">Paso {current} de 3</p>
+      <div className="flex items-center">
+        {[1, 2, 3].map((n, i) => (
+          <Fragment key={n}>
+            {i > 0 && (
+              <div
+                className={`h-0.5 w-10 ${n <= current ? "bg-violet-600" : "bg-gray-200"}`}
+              />
+            )}
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
+                ${n < current
+                  ? "bg-violet-600 text-white"
+                  : n === current
+                  ? "bg-violet-600 text-white ring-4 ring-violet-100"
+                  : "bg-white border-2 border-gray-200 text-gray-400"
+                }`}
+            >
+              {n < current ? "✓" : n}
+            </div>
+          </Fragment>
+        ))}
+      </div>
+    </div>
   )
+}
+
+/* ── Shared input field ── */
+function Field({
+  label,
+  name,
+  type = "text",
+  placeholder,
+  error,
+}: Readonly<{
+  label: string
+  name: string
+  type?: string
+  placeholder?: string
+  error?: string
+}>) {
+  return (
+    <div>
+      <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
+      <input
+        id={name}
+        name={name}
+        type={type}
+        placeholder={placeholder}
+        required
+        className="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-gray-400"
+      />
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  )
+}
+
+/* ── Step 2 form — Google path ── */
+function StepInfoGoogle({
+  onContinue,
+}: Readonly<{ onContinue: (d: StepData) => void }>) {
+  const [country, setCountry] = useState("+591")
+  const [err, setErr] = useState("")
+
+  function handleAction(fd: FormData) {
+    const firstName   = (fd.get("firstName")   as string).trim()
+    const lastName    = (fd.get("lastName")    as string).trim()
+    const phoneNumber = (fd.get("phoneNumber") as string).trim()
+
+    if (!firstName || !lastName || !phoneNumber) {
+      setErr("Completa todos los campos.")
+      return
+    }
+    setErr("")
+    onContinue({ firstName, lastName, phoneCountry: country, phoneNumber, email: "" })
+  }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-6">
-          Crear cuenta
-        </h1>
+    <>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Completa tu información</h2>
+      <p className="text-sm text-gray-500 mb-5">
+        Solo necesitamos algunos datos para crear tu cuenta.
+      </p>
+      <form action={handleAction} className="space-y-3">
+        <Field label="Nombre"   name="firstName" placeholder="Ingresa tu nombre" />
+        <Field label="Apellido" name="lastName"  placeholder="Ingresa tu apellido" />
 
-        <form action={action} className="space-y-4">
-          <div>
-            <label
-              htmlFor="firstName"
-              className="block text-sm font-medium text-gray-700 mb-1"
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Número de celular
+          </label>
+          <div className="flex gap-2">
+            <select
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className="border border-gray-200 rounded-xl px-2 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
             >
-              Nombre
-            </label>
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.code}
+                </option>
+              ))}
+            </select>
             <input
-              id="firstName"
-              name="firstName"
-              type="text"
-              autoComplete="given-name"
-              required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-            />
-            {state?.errors?.firstName && (
-              <p className="text-xs text-red-600 mt-1">
-                {state.errors.firstName[0]}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-            />
-            {state?.errors?.email && (
-              <p className="text-xs text-red-600 mt-1">
-                {state.errors.email[0]}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="phoneNumber"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Teléfono
-            </label>
-            <input
-              id="phoneNumber"
               name="phoneNumber"
               type="tel"
-              autoComplete="tel"
-              placeholder="+57 300 000 0000"
+              placeholder="7 1234567"
               required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+              className="flex-1 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-gray-400"
             />
-            {state?.errors?.phoneNumber && (
-              <p className="text-xs text-red-600 mt-1">
-                {state.errors.phoneNumber[0]}
-              </p>
-            )}
           </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Contraseña
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-            />
-            {state?.errors?.password && (
-              <p className="text-xs text-red-600 mt-1">
-                {state.errors.password[0]}
-              </p>
-            )}
-          </div>
-
-          {state?.message && (
-            <p className="text-sm text-red-600">{state.message}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full bg-black text-white rounded-lg py-2 text-sm font-medium hover:bg-gray-800 disabled:opacity-50 transition-colors"
-          >
-            {pending ? "Registrando..." : "Crear cuenta"}
-          </button>
-        </form>
-
-        <div className="my-4 flex items-center gap-3">
-          <hr className="flex-1 border-gray-200" />
-          <span className="text-xs text-gray-400">o</span>
-          <hr className="flex-1 border-gray-200" />
+          <p className="text-xs text-gray-400 mt-1">
+            Te usaremos para contactarte sobre tus pedidos
+          </p>
         </div>
 
+        {err && <p className="text-sm text-red-500">{err}</p>}
+
         <button
-          onClick={() => signIn("google", { callbackUrl: "/" })}
-          className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded-lg py-2 text-sm font-medium hover:bg-gray-50 transition-colors"
+          type="submit"
+          className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-3 text-sm font-semibold transition-colors mt-1"
         >
-          <GoogleIcon />
-          Continuar con Google
+          Continuar
+        </button>
+      </form>
+    </>
+  )
+}
+
+/* ── Step 2 form — Email path ── */
+function StepInfoEmail({
+  onContinue,
+}: Readonly<{ onContinue: (d: StepData) => void }>) {
+  const [country, setCountry] = useState("+591")
+  const [err, setErr] = useState("")
+
+  function handleAction(fd: FormData) {
+    const email           = (fd.get("email")           as string).trim()
+    const firstName       = (fd.get("firstName")       as string).trim()
+    const lastName        = (fd.get("lastName")        as string).trim()
+    const phoneNumber     = (fd.get("phoneNumber")     as string).trim()
+    const password        = fd.get("password")        as string
+    const confirmPassword = fd.get("confirmPassword") as string
+
+    if (!email || !firstName || !lastName || !phoneNumber || !password) {
+      setErr("Completa todos los campos.")
+      return
+    }
+    if (password.length < 8) {
+      setErr("La contraseña debe tener al menos 8 caracteres.")
+      return
+    }
+    if (password !== confirmPassword) {
+      setErr("Las contraseñas no coinciden.")
+      return
+    }
+
+    setErr("")
+
+    // BACKEND: POST /auth/register — descomentar cuando el endpoint exista
+    // fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register`, {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({ email, firstName, lastName, phoneNumber: `${country}${phoneNumber}`, password }),
+    // })
+
+    onContinue({ email, firstName, lastName, phoneCountry: country, phoneNumber })
+  }
+
+  return (
+    <>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Completa tu información</h2>
+      <p className="text-sm text-gray-500 mb-5">
+        Necesitamos algunos datos para crear tu cuenta.
+      </p>
+      <form action={handleAction} className="space-y-3">
+        <Field label="Correo electrónico" name="email" type="email" placeholder="ejemplo@correo.com" />
+        <Field label="Nombre"   name="firstName" placeholder="Ingresa tu nombre" />
+        <Field label="Apellido" name="lastName"  placeholder="Ingresa tu apellido" />
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Número de celular
+          </label>
+          <div className="flex gap-2">
+            <select
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className="border border-gray-200 rounded-xl px-2 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.code}
+                </option>
+              ))}
+            </select>
+            <input
+              name="phoneNumber"
+              type="tel"
+              placeholder="7 1234567"
+              required
+              className="flex-1 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder-gray-400"
+            />
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            Te usaremos para contactarte sobre tus pedidos
+          </p>
+        </div>
+
+        <Field
+          label="Contraseña"
+          name="password"
+          type="password"
+          placeholder="Mínimo 8 caracteres"
+        />
+        <Field
+          label="Repetir contraseña"
+          name="confirmPassword"
+          type="password"
+          placeholder="Repite tu contraseña"
+        />
+
+        {err && <p className="text-sm text-red-500">{err}</p>}
+
+        <button
+          type="submit"
+          className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-3 text-sm font-semibold transition-colors mt-1"
+        >
+          Continuar
+        </button>
+      </form>
+    </>
+  )
+}
+
+/* ── Step 3 OTP verification ── */
+function StepVerify({
+  method,
+  data,
+  onSuccess,
+}: Readonly<{ method: Method; data: StepData; onSuccess: () => void }>) {
+  const [otp, setOtp] = useState<string[]>(Array(6).fill(""))
+  const [err, setErr] = useState("")
+  const { left, formatted, restart } = useCountdown(45)
+  const isWhatsApp = method === "google"
+
+  const target = isWhatsApp
+    ? `${data.phoneCountry} ${data.phoneNumber}`
+    : data.email
+
+  function handleAction() {
+    const code = otp.join("")
+    if (code.length < 6) {
+      setErr("Ingresa los 6 dígitos del código.")
+      return
+    }
+    setErr("")
+
+    // BACKEND: POST /auth/verify-otp — descomentar cuando el endpoint exista
+    // fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-otp`, {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({ code, target, type: isWhatsApp ? "WHATSAPP" : "EMAIL" }),
+    // })
+
+    onSuccess()
+  }
+
+  return (
+    <>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">
+        {isWhatsApp ? "Verifica tu número" : "Verifica tu correo"}
+      </h2>
+      <p className="text-sm text-gray-500 mb-1">
+        {isWhatsApp
+          ? "Te enviamos un código por WhatsApp al"
+          : "Te enviamos un código por correo a"}
+      </p>
+      <p className="text-sm font-semibold text-violet-600 mb-5 flex items-center gap-1">
+        {target}
+        <span>{isWhatsApp ? "📱" : "✉️"}</span>
+      </p>
+
+      {/* Banner */}
+      {isWhatsApp ? (
+        <div className="flex items-start gap-2 bg-green-50 border border-green-100 rounded-xl p-3 mb-5">
+          <WhatsAppIcon />
+          <div className="text-xs text-green-700">
+            <p className="font-semibold">Código enviado por WhatsApp</p>
+            <p>Revisa tus mensajes.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-start gap-2 bg-violet-50 border border-violet-100 rounded-xl p-3 mb-5">
+          <MailIconSmall />
+          <div className="text-xs text-violet-700">
+            <p className="font-semibold">Código enviado por correo electrónico</p>
+            <p>Revisa tu bandeja de entrada o carpeta de spam.</p>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-5">
+        <OtpInput value={otp} onChange={setOtp} />
+
+        {err && <p className="text-sm text-red-500 text-center">{err}</p>}
+
+        <p className="text-center text-xs text-gray-500">
+          ¿No recibiste el código?{" "}
+          {left > 0 ? (
+            <span className="text-violet-600 font-medium">
+              Reenviar código ({formatted})
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={restart}
+              className="text-violet-600 font-medium hover:underline"
+            >
+              Reenviar código
+            </button>
+          )}
+        </p>
+
+        <button
+          type="button"
+          onClick={handleAction}
+          className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-3 text-sm font-semibold transition-colors"
+        >
+          Verificar
+        </button>
+      </div>
+    </>
+  )
+}
+
+/* ── Main signup page ── */
+function SignupContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const method = (searchParams.get("method") ?? "email") as Method
+
+  const [step, setStep] = useState<Step>(2)
+  const [stepData, setStepData] = useState<StepData | null>(null)
+
+  function handleInfoContinue(data: StepData) {
+    setStepData(data)
+    setStep(3)
+  }
+
+  function handleVerifySuccess() {
+    if (method === "google") {
+      signIn("google", { callbackUrl: "/" })
+    } else {
+      router.push("/signin")
+    }
+  }
+
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
+      <div className="w-full max-w-sm bg-white rounded-3xl shadow-md px-8 py-8">
+        {/* Back button */}
+        <button
+          onClick={() => (step === 2 ? router.push("/signin") : setStep(2))}
+          className="text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1 text-sm"
+        >
+          <BackIcon />
         </button>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
-          ¿Ya tienes cuenta?{" "}
-          <Link
-            href="/signin"
-            className="font-medium text-black hover:underline"
-          >
-            Inicia sesión
-          </Link>
-        </p>
+        <ProgressBar current={step} />
+
+        {step === 2 ? (
+          method === "google" ? (
+            <StepInfoGoogle onContinue={handleInfoContinue} />
+          ) : (
+            <StepInfoEmail onContinue={handleInfoContinue} />
+          )
+        ) : (
+          <StepVerify
+            method={method}
+            data={stepData ?? { firstName: "", lastName: "", phoneCountry: "+591", phoneNumber: "", email: "" }}
+            onSuccess={handleVerifySuccess}
+          />
+        )}
       </div>
     </main>
   )
 }
 
-function GoogleIcon() {
+export default function SignupPage() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+    <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+      <SignupContent />
+    </Suspense>
+  )
+}
+
+/* ── Icons ── */
+
+function BackIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0 mt-0.5">
       <path
-        fill="#4285F4"
-        d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18Z"
+        d="M20.52 3.48A11.93 11.93 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.17 1.6 5.98L0 24l6.18-1.62A11.94 11.94 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.21-1.25-6.22-3.48-8.52Z"
+        fill="#25D366"
       />
       <path
-        fill="#34A853"
-        d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17Z"
+        d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.48-1.76-1.66-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.44-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.47s1.06 2.87 1.21 3.07c.15.2 2.1 3.2 5.08 4.49.71.31 1.27.49 1.7.63.71.23 1.36.19 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35Z"
+        fill="white"
       />
-      <path
-        fill="#FBBC05"
-        d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07Z"
-      />
-      <path
-        fill="#EA4335"
-        d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3Z"
-      />
+    </svg>
+  )
+}
+
+function MailIconSmall() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0 mt-0.5 text-violet-600">
+      <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3 7l9 6 9-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 }
