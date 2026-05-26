@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect, Fragment } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 import OtpInput from "@/components/ui/OtpInput"
 
 type Method = "google" | "email"
@@ -14,6 +14,7 @@ interface StepData {
   phoneCountry: string
   phoneNumber: string
   email: string
+  password: string
 }
 
 const COUNTRIES = [
@@ -25,6 +26,8 @@ const COUNTRIES = [
   { code: "+56",  flag: "🇨🇱" },
   { code: "+55",  flag: "🇧🇷" },
 ]
+
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL
 
 /* ── Countdown hook ── */
 function useCountdown(seconds: number) {
@@ -106,12 +109,14 @@ function Field({
 
 /* ── Step 2 form — Google path ── */
 function StepInfoGoogle({
+  backendToken,
   onContinue,
-}: Readonly<{ onContinue: (d: StepData) => void }>) {
+}: Readonly<{ backendToken: string; onContinue: (d: StepData) => void }>) {
   const [country, setCountry] = useState("+591")
   const [err, setErr] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  function handleAction(fd: FormData) {
+  async function handleAction(fd: FormData) {
     const firstName   = (fd.get("firstName")   as string).trim()
     const lastName    = (fd.get("lastName")    as string).trim()
     const phoneNumber = (fd.get("phoneNumber") as string).trim()
@@ -121,7 +126,27 @@ function StepInfoGoogle({
       return
     }
     setErr("")
-    onContinue({ firstName, lastName, phoneCountry: country, phoneNumber, email: "" })
+    setLoading(true)
+    try {
+      const res = await fetch(`${BACKEND}/auth/complete-profile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${backendToken}`,
+        },
+        body: JSON.stringify({ firstName, lastName, phoneNumber: `${country}${phoneNumber}` }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setErr((body as { message?: string }).message ?? "Error al guardar perfil")
+        return
+      }
+      onContinue({ firstName, lastName, phoneCountry: country, phoneNumber, email: "", password: "" })
+    } catch {
+      setErr("Error de conexión. Intenta de nuevo.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -167,9 +192,10 @@ function StepInfoGoogle({
 
         <button
           type="submit"
-          className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-3 text-sm font-semibold transition-colors mt-1"
+          disabled={loading}
+          className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-3 text-sm font-semibold transition-colors mt-1 disabled:opacity-50"
         >
-          Continuar
+          {loading ? "Guardando..." : "Continuar"}
         </button>
       </form>
     </>
@@ -182,8 +208,9 @@ function StepInfoEmail({
 }: Readonly<{ onContinue: (d: StepData) => void }>) {
   const [country, setCountry] = useState("+591")
   const [err, setErr] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  function handleAction(fd: FormData) {
+  async function handleAction(fd: FormData) {
     const email           = (fd.get("email")           as string).trim()
     const firstName       = (fd.get("firstName")       as string).trim()
     const lastName        = (fd.get("lastName")        as string).trim()
@@ -205,15 +232,30 @@ function StepInfoEmail({
     }
 
     setErr("")
-
-    // BACKEND: POST /auth/register — descomentar cuando el endpoint exista
-    // fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register`, {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({ email, firstName, lastName, phoneNumber: `${country}${phoneNumber}`, password }),
-    // })
-
-    onContinue({ email, firstName, lastName, phoneCountry: country, phoneNumber })
+    setLoading(true)
+    try {
+      const res = await fetch(`${BACKEND}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          firstName,
+          lastName,
+          phoneNumber: `${country}${phoneNumber}`,
+          password,
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setErr((body as { message?: string }).message ?? "Error al registrar")
+        return
+      }
+      onContinue({ email, firstName, lastName, phoneCountry: country, phoneNumber, password })
+    } catch {
+      setErr("Error de conexión. Intenta de nuevo.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -273,9 +315,10 @@ function StepInfoEmail({
 
         <button
           type="submit"
-          className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-3 text-sm font-semibold transition-colors mt-1"
+          disabled={loading}
+          className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-3 text-sm font-semibold transition-colors mt-1 disabled:opacity-50"
         >
-          Continuar
+          {loading ? "Registrando..." : "Continuar"}
         </button>
       </form>
     </>
@@ -287,32 +330,64 @@ function StepVerify({
   method,
   data,
   onSuccess,
-}: Readonly<{ method: Method; data: StepData; onSuccess: () => void }>) {
+}: Readonly<{ method: Method; data: StepData; onSuccess: (backendToken: string) => void }>) {
   const [otp, setOtp] = useState<string[]>(Array(6).fill(""))
   const [err, setErr] = useState("")
+  const [loading, setLoading] = useState(false)
   const { left, formatted, restart } = useCountdown(45)
   const isWhatsApp = method === "google"
 
   const target = isWhatsApp
+    ? `${data.phoneCountry}${data.phoneNumber}`
+    : data.email
+
+  const displayTarget = isWhatsApp
     ? `${data.phoneCountry} ${data.phoneNumber}`
     : data.email
 
-  function handleAction() {
+  async function handleVerify() {
     const code = otp.join("")
     if (code.length < 6) {
       setErr("Ingresa los 6 dígitos del código.")
       return
     }
     setErr("")
+    setLoading(true)
+    try {
+      const res = await fetch(`${BACKEND}/auth/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          target,
+          code,
+          type: isWhatsApp ? "WHATSAPP" : "EMAIL",
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setErr((body as { message?: string }).message ?? "Código inválido o expirado")
+        return
+      }
+      const { token } = await res.json() as { token: string }
+      onSuccess(token)
+    } catch {
+      setErr("Error de conexión. Intenta de nuevo.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    // BACKEND: POST /auth/verify-otp — descomentar cuando el endpoint exista
-    // fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/verify-otp`, {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({ code, target, type: isWhatsApp ? "WHATSAPP" : "EMAIL" }),
-    // })
-
-    onSuccess()
+  async function handleResend() {
+    try {
+      await fetch(`${BACKEND}/auth/resend-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target, type: isWhatsApp ? "WHATSAPP" : "EMAIL" }),
+      })
+    } catch {
+      // silently ignore resend errors
+    }
+    restart()
   }
 
   return (
@@ -326,7 +401,7 @@ function StepVerify({
           : "Te enviamos un código por correo a"}
       </p>
       <p className="text-sm font-semibold text-violet-600 mb-5 flex items-center gap-1">
-        {target}
+        {displayTarget}
         <span>{isWhatsApp ? "📱" : "✉️"}</span>
       </p>
 
@@ -363,7 +438,7 @@ function StepVerify({
           ) : (
             <button
               type="button"
-              onClick={restart}
+              onClick={handleResend}
               className="text-violet-600 font-medium hover:underline"
             >
               Reenviar código
@@ -373,10 +448,11 @@ function StepVerify({
 
         <button
           type="button"
-          onClick={handleAction}
-          className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-3 text-sm font-semibold transition-colors"
+          onClick={handleVerify}
+          disabled={loading}
+          className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-3 text-sm font-semibold transition-colors disabled:opacity-50"
         >
-          Verificar
+          {loading ? "Verificando..." : "Verificar"}
         </button>
       </div>
     </>
@@ -388,6 +464,7 @@ function SignupContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const method = (searchParams.get("method") ?? "email") as Method
+  const { data: session, update } = useSession()
 
   const [step, setStep] = useState<Step>(2)
   const [stepData, setStepData] = useState<StepData | null>(null)
@@ -397,11 +474,17 @@ function SignupContent() {
     setStep(3)
   }
 
-  function handleVerifySuccess() {
+  async function handleVerifySuccess(newToken: string) {
     if (method === "google") {
-      signIn("google", { callbackUrl: "/" })
+      await update({ backendToken: newToken })
+      router.push("/")
     } else {
-      router.push("/signin")
+      const result = await signIn("credentials", {
+        email: stepData!.email,
+        password: stepData!.password,
+        redirect: false,
+      })
+      router.push(result?.ok ? "/" : "/signin")
     }
   }
 
@@ -420,14 +503,17 @@ function SignupContent() {
 
         {step === 2 ? (
           method === "google" ? (
-            <StepInfoGoogle onContinue={handleInfoContinue} />
+            <StepInfoGoogle
+              backendToken={session?.user.backendToken ?? ""}
+              onContinue={handleInfoContinue}
+            />
           ) : (
             <StepInfoEmail onContinue={handleInfoContinue} />
           )
         ) : (
           <StepVerify
             method={method}
-            data={stepData ?? { firstName: "", lastName: "", phoneCountry: "+591", phoneNumber: "", email: "" }}
+            data={stepData ?? { firstName: "", lastName: "", phoneCountry: "+591", phoneNumber: "", email: "", password: "" }}
             onSuccess={handleVerifySuccess}
           />
         )}
