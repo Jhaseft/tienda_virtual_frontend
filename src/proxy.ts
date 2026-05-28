@@ -24,7 +24,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(signInUrl)
   }
 
-  if (isAuthRoute && isAuthenticated) {
+  // Google users need /signup?method=google to complete their profile even when authenticated
+  const isGoogleOnboarding =
+    pathname.startsWith("/signup") &&
+    request.nextUrl.searchParams.get("method") === "google"
+
+  if (isAuthRoute && isAuthenticated && !isGoogleOnboarding) {
     return NextResponse.redirect(new URL("/", request.url))
   }
 
