@@ -4,7 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Suspense } from "react"
 import SearchBar from "./SearchBar"
-import { signOut } from "next-auth/react"
 
 const NAV_ITEMS = [
   { href: "/",          label: "Inicio",      icon: HomeIcon },
@@ -76,15 +75,15 @@ export default function BottomNav() {
 
             <div className="w-px h-5 bg-gray-200 mx-1" />
 
-            <button
-              onClick={() => signOut({ callbackUrl: "/signin" })}
+            <Link
+              href="/perfil"
               className="flex items-center gap-2 pl-2 pr-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
             >
               <div className="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center">
                 <UserIcon active={false} />
               </div>
-              <span>Salir</span>
-            </button>
+              <span>Perfil</span>
+            </Link>
           </div>
 
         </div>
