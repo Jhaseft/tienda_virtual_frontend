@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { checkIsFavorite, addFavorite, removeFavorite } from "@/app/(explorarTienda)/api/public-explorarTienda.api"
+import { checkIsFavorite, addFavorite, removeFavorite, fetchStorePaymentMethods } from "@/app/(explorarTienda)/api/public-explorarTienda.api"
+import type { PaymentMethod } from "@/types/explorar"
+import PaymentModal from "./PaymentModal"
 
 interface Props {
   productId: string
@@ -10,17 +12,20 @@ interface Props {
   price: number
   whatsapp: string | null
   storeName: string
+  storeId: string
   selectedSize?: string | null
   selectedColor?: string | null
 }
 
 export default function ProductActions({
-  productId, productName, price, whatsapp, storeName, selectedSize, selectedColor,
+  productId, productName, price, whatsapp, storeName, storeId, selectedSize, selectedColor,
 }: Props) {
   const { data: session } = useSession()
   const [favorite, setFavorite] = useState(false)
   const [loadingFav, setLoadingFav] = useState(false)
-  const isMounted = { current: false }
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+  const [showPayModal, setShowPayModal] = useState(false)
+  const [loadingPay, setLoadingPay] = useState(false)
 
   useEffect(() => {
     if (!session?.user?.backendToken) return
@@ -43,6 +48,14 @@ export default function ProductActions({
     }
   }
 
+  async function handlePay() {
+    setLoadingPay(true)
+    const methods = await fetchStorePaymentMethods(storeId)
+    setPaymentMethods(methods)
+    setLoadingPay(false)
+    setShowPayModal(true)
+  }
+
   function handleWhatsApp() {
     if (!whatsapp) return
     const number = whatsapp.replace(/\D/g, "")
@@ -56,6 +69,7 @@ export default function ProductActions({
 
   return (
     <div className="flex flex-col gap-3">
+
       <button
         onClick={handleWhatsApp}
         disabled={!whatsapp}
@@ -63,6 +77,24 @@ export default function ProductActions({
       >
         <WhatsAppIcon />
         Consultar por WhatsApp
+      </button>
+
+      {showPayModal && (
+        <PaymentModal
+          methods={paymentMethods}
+          whatsapp={whatsapp}
+          productName={productName}
+          onClose={() => setShowPayModal(false)}
+        />
+      )}
+
+      <button
+        onClick={handlePay}
+        disabled={loadingPay}
+        className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-sm font-semibold py-4 rounded-2xl transition-colors shadow-sm shadow-emerald-200"
+      >
+        <CreditCardIcon />
+        {loadingPay ? "Cargando..." : "Pagar"}
       </button>
 
       <button
@@ -78,6 +110,15 @@ export default function ProductActions({
         {favorite ? "En favoritos" : "Agregar a favoritos"}
       </button>
     </div>
+  )
+}
+
+function CreditCardIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+      <line x1="1" y1="10" x2="23" y2="10" />
+    </svg>
   )
 }
 

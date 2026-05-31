@@ -104,6 +104,7 @@ export default async function ProductDetailPage({ params }: Props) {
               price={product.price}
               whatsapp={product.store.whatsapp}
               storeName={product.store.name}
+              storeId={product.store.id}
               sizes={product.sizes}
               colors={product.colors}
             />
