@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Suspense } from "react"
-import SearchBar from "./SearchBar"
+import SearchBar from "../../components/explorarTienda/home/SearchBar"
 
 const NAV_ITEMS = [
   { href: "/",          label: "Inicio",      icon: HomeIcon },

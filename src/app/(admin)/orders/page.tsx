@@ -2,14 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import AdminShell from "@/components/admin/AdminShell";
-import AdminMenuDropdown from "@/components/admin/AdminMenuDropdown";
-import EmptyState from "@/components/admin/EmptyState";
-import LoadingState from "@/components/admin/LoadingState";
-import OrderCard from "@/components/admin/OrderCard";
+import AdminShell from "@/components/admin/home/AdminShell";
+import AdminMenuDropdown from "@/components/admin/home/AdminMenuDropdown";
+import EmptyState from "@/components/admin/home/EmptyState";
+import LoadingState from "@/components/admin/home/LoadingState";
+import OrderCard from "@/components/admin/home/OrderCard";
 import { ApiError } from "@/lib/api/client";
 import { getAdminOrders } from "@/lib/api/admin";
 import type { AdminOrder, AdminOrderStatus } from "@/types/admin";
+import PageFooterHint from "@/components/ui/PageFooterHint";
 
 const ORDER_FILTERS: Array<{
   label: string;
@@ -96,8 +97,7 @@ export default function OrdersPage() {
 
   return (
     <AdminShell title="Pedidos" subtitle="Todos los pedidos recibidos" rightSlot={<AdminMenuDropdown />}>
-      {/* Tabs de filtro horizontales */}
-      <div className="-mx-4 mb-4 flex overflow-x-auto border-b border-zinc-200 px-4">
+      <div className="-mx-4 md:-mx-8 mb-6 flex overflow-x-auto border-b border-gray-100 px-4 md:px-8">
         {ORDER_FILTERS.map((filter) => {
           const active = filter.value === selectedFilter;
           return (
@@ -110,10 +110,10 @@ export default function OrdersPage() {
                 setIsLoading(true);
                 setSelectedFilter(filter.value);
               }}
-              className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors focus:outline-none ${
+              className={`shrink-0 px-4 py-3 text-sm font-semibold transition-colors focus:outline-none border-b-2 ${
                 active
-                  ? "border-b-2 border-violet-600 text-violet-700"
-                  : "border-b-2 border-transparent text-zinc-500 hover:text-zinc-700"
+                  ? "border-violet-600 text-violet-700"
+                  : "border-transparent text-gray-400 hover:text-gray-700"
               }`}
             >
               {filter.label}
@@ -121,7 +121,9 @@ export default function OrdersPage() {
           );
         })}
       </div>
-      {content}
+      <div className="space-y-2.5">{content}</div>
+
+      <PageFooterHint message="Gestiona tus pedidos de manera profesional" />
     </AdminShell>
   );
 }

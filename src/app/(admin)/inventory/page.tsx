@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import AdminBottomNav from "@/components/admin/AdminBottomNav";
-import AdminMenuDropdown from "@/components/admin/AdminMenuDropdown";
-import EmptyState from "@/components/admin/EmptyState";
-import LoadingState from "@/components/admin/LoadingState";
-import ProductStockCard from "@/components/admin/ProductStockCard";
-import SearchInput from "@/components/admin/SearchInput";
+import AdminShell from "@/components/admin/home/AdminShell";
+import AdminMenuDropdown from "@/components/admin/home/AdminMenuDropdown";
+import EmptyState from "@/components/admin/home/EmptyState";
+import LoadingState from "@/components/admin/home/LoadingState";
+import ProductStockCard from "@/components/admin/home/ProductStockCard";
+import SearchInput from "@/components/admin/home/SearchInput";
+import PageFooterHint from "@/components/ui/PageFooterHint";
 import { getAdminInventory, updateProductStock } from "@/lib/api/admin";
 import { ApiError } from "@/lib/api/client";
 import type { InventoryItem } from "@/types/admin";
@@ -24,9 +25,7 @@ export default function InventoryPage() {
   const sessionInvalid = status !== "loading" && !token;
 
   useEffect(() => {
-    if (status === "loading") return;
-    if (!token) return;
-
+    if (status === "loading" || !token) return;
     const tok = token;
     let active = true;
 
@@ -53,12 +52,9 @@ export default function InventoryPage() {
     setSavingId(productId);
     setError(null);
     setSuccess(null);
-
     try {
       const updated = await updateProductStock(productId, stock, { token });
-      setItems((prev) =>
-        prev.map((item) => (item.id === productId ? { ...item, ...updated } : item))
-      );
+      setItems((prev) => prev.map((item) => (item.id === productId ? { ...item, ...updated } : item)));
       setSuccess("Stock actualizado correctamente.");
     } catch (err) {
       if (err instanceof ApiError) setError(err.message);
@@ -69,79 +65,33 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col bg-white shadow-sm">
+    <AdminShell title="Inventario" subtitle="Gestiona el stock de tus productos" rightSlot={<AdminMenuDropdown />}>
+      <SearchInput value={search} onChange={setSearch} placeholder="Buscar producto" />
 
-        {/* ── Header ─────────────────────────────────────────── */}
-        <header className="sticky top-0 z-20 bg-violet-700 px-4 py-3 text-white">
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold">Inventario</h1>
-            <AdminMenuDropdown />
-          </div>
-        </header>
+      <div className="mt-4 space-y-3">
+        {error && (
+          <div className="rounded-xl bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-700">{error}</div>
+        )}
+        {success && (
+          <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-700">{success}</div>
+        )}
 
-        {/* ── Buscador ────────────────────────────────────────── */}
-        <div className="bg-white px-4 py-3">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Buscar producto"
+        {sessionInvalid && <EmptyState title="Sesión no válida" description="Inicia sesión nuevamente." />}
+        {!sessionInvalid && isLoading && <LoadingState text="Cargando inventario..." />}
+        {!sessionInvalid && !isLoading && !error && items.length === 0 && (
+          <EmptyState title="Sin productos" description="Cuando agregues productos aparecerán aquí." />
+        )}
+        {!sessionInvalid && !isLoading && items.length > 0 && items.map((item) => (
+          <ProductStockCard
+            key={item.id}
+            item={item}
+            isSaving={savingId === item.id}
+            onSaveStock={handleSaveStock}
           />
-        </div>
-
-        {/* ── Contenido ───────────────────────────────────────── */}
-        <main className="flex-1 pb-32">
-
-          {error ? (
-            <p className="mx-4 mb-2 rounded-xl bg-rose-100 px-3 py-2 text-sm text-rose-700">{error}</p>
-          ) : null}
-
-          {success ? (
-            <p className="mx-4 mb-2 rounded-xl bg-emerald-100 px-3 py-2 text-sm text-emerald-700">{success}</p>
-          ) : null}
-
-          {sessionInvalid ? (
-            <div className="p-4">
-              <EmptyState title="Sesion no valida" description="Inicia sesion nuevamente." />
-            </div>
-          ) : null}
-
-          {!sessionInvalid && isLoading ? (
-            <div className="p-4">
-              <LoadingState text="Cargando inventario..." />
-            </div>
-          ) : null}
-
-          {!sessionInvalid && !isLoading && !error && items.length === 0 ? (
-            <div className="p-4">
-              <EmptyState
-                title="Sin productos"
-                description="Cuando agregues productos apareceran aqui."
-              />
-            </div>
-          ) : null}
-
-          {!sessionInvalid && !isLoading && items.length > 0 ? (
-            <div>
-              {items.map((item) => (
-                <ProductStockCard
-                  key={item.id}
-                  item={item}
-                  isSaving={savingId === item.id}
-                  onSaveStock={handleSaveStock}
-                />
-              ))}
-            </div>
-          ) : null}
-
-        </main>
-
-        {/* ── BottomNav ────────────────────────────────────────── */}
-        <div className="fixed bottom-0 left-1/2 w-full max-w-md -translate-x-1/2">
-          <AdminBottomNav />
-        </div>
-
+        ))}
       </div>
-    </div>
+
+      <PageFooterHint message="Mantén tu inventario siempre actualizado" />
+    </AdminShell>
   );
 }

@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import AdminShell from "@/components/admin/AdminShell";
-import AdminMenuDropdown from "@/components/admin/AdminMenuDropdown";
-import CustomerCard from "@/components/admin/CustomerCard";
-import EmptyState from "@/components/admin/EmptyState";
-import LoadingState from "@/components/admin/LoadingState";
-import SearchInput from "@/components/admin/SearchInput";
+import AdminShell from "@/components/admin/home/AdminShell";
+import AdminMenuDropdown from "@/components/admin/home/AdminMenuDropdown";
+import CustomerCard from "@/components/admin/home/CustomerCard";
+import EmptyState from "@/components/admin/home/EmptyState";
+import LoadingState from "@/components/admin/home/LoadingState";
+import SearchInput from "@/components/admin/home/SearchInput";
 import { getAdminCustomers } from "@/lib/api/admin";
 import { ApiError } from "@/lib/api/client";
 import type { AdminCustomer } from "@/types/admin";
+import PageFooterHint from "@/components/ui/PageFooterHint";
 
 export default function CustomersPage() {
   const { data: session, status } = useSession();
@@ -45,6 +46,8 @@ export default function CustomersPage() {
         placeholder="Buscar cliente por nombre o telefono"
       />
 
+      <div className="mt-4" />
+
       {sessionInvalid ? (
         <EmptyState
           title="Sesion no valida"
@@ -68,6 +71,8 @@ export default function CustomersPage() {
           ))}
         </div>
       ) : null}
+
+      <PageFooterHint message="Gestiona tus clientes de manera profesional" />
     </AdminShell>
   );
 }

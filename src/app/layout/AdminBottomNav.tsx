@@ -10,7 +10,7 @@ const LEFT_ITEMS = [
 ];
 
 const RIGHT_ITEMS = [
-  { href: "/orders",   label: "Pedidos", Icon: ShoppingBag   },
+  { href: "/orders",   label: "Pedidos", Icon: ShoppingBag    },
   { href: "/settings", label: "Más",     Icon: MoreHorizontal },
 ];
 
@@ -23,9 +23,8 @@ export default function AdminBottomNav() {
   }
 
   return (
-    <nav className="md:hidden sticky bottom-0 z-20 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
       <div className="flex items-center justify-around px-2 py-1">
-        {/* Izquierda */}
         {LEFT_ITEMS.map(({ href, label, Icon }) => {
           const active = isActive(href);
           return (
@@ -57,7 +56,6 @@ export default function AdminBottomNav() {
           </button>
         </div>
 
-        {/* Derecha */}
         {RIGHT_ITEMS.map(({ href, label, Icon }) => {
           const active = isActive(href);
           return (

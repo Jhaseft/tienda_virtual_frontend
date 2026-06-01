@@ -34,6 +34,7 @@ export interface AdminOrder {
     lastName?: string | null;
     phoneNumber?: string | null;
     email?: string | null;
+    avatarUrl?: string | null;
   };
   items: AdminOrderItem[];
 }
@@ -43,6 +44,7 @@ export interface AdminCustomer {
   name: string;
   phoneNumber?: string | null;
   email?: string | null;
+  avatarUrl?: string | null;
   totalOrders: number;
   totalSpent: number;
   lastOrderAt?: string | Date | null;

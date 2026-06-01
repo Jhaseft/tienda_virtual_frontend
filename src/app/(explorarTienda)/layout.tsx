@@ -1,4 +1,4 @@
-import BottomNav from "@/components/explorarTienda/home/BottomNav"
+import BottomNav from "@/app/layout/BottomNav"
 
 export default function ExplorarLayout({ children }: { children: React.ReactNode }) {
   return (
