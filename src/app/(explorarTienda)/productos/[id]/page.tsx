@@ -15,9 +15,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
   if (!product) notFound()
 
-  const stockLabel = product.sizes.length > 0
-    ? `${product.sizes.reduce((sum, s) => sum + s.stock, 0)} unidades`
-    : `${product.stock} unidades`
+  const stockLabel = `${product.stock} unidades`
 
   return (
     <main className="min-h-screen bg-gray-50 pt-4 md:pt-20">

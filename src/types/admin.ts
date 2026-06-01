@@ -140,3 +140,14 @@ export interface PaginatedResponse<T> {
   total: number;
   totalPages: number;
 }
+
+export interface DashboardStats {
+  ownerName: string | null;
+  storeName: string | null;
+  storeId: string;
+  salesToday: { total: number; count: number };
+  totalProducts: number;
+  totalOrders: number;
+  lowStockCount: number;
+  totalCustomers: number;
+}

@@ -4,6 +4,7 @@ import type {
   AdminOrder,
   AdminOrderStatus,
   AdminStats,
+  DashboardStats,
   InventoryItem,
   PaginatedResponse,
   StoreSettings,
@@ -126,6 +127,10 @@ export async function getAdminStats(
   { token }: ApiParams
 ): Promise<AdminStats> {
   return apiRequest<AdminStats>(`/stats/admin?period=${period}`, { token });
+}
+
+export async function getDashboardStats({ token }: ApiParams): Promise<DashboardStats> {
+  return apiRequest<DashboardStats>("/stats/dashboard", { token });
 }
 
 export async function getStoreSettings({

@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Users, Layers, BarChart2, Store, Home, ChevronRight } from "lucide-react";
+import { ShoppingBag, Users, Layers, BarChart2, Store, Home, ChevronRight, Package } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const ITEMS: { href: string; label: string; Icon: LucideIcon; color: string; activeBg: string; activeText: string; activeBorder: string }[] = [
+  {href: "/dashboard", label: "Inicio",        Icon: Home,        color: "text-gray-500",   activeBg: "bg-gray-100",   activeText: "text-gray-900",   activeBorder: "border-gray-500"   },
+  {href: "/products",  label: "Productos",     Icon: Package,     color: "text-violet-500", activeBg: "bg-violet-50",  activeText: "text-violet-700",activeBorder: "border-violet-500"},
   { href: "/orders",    label: "Pedidos",       Icon: ShoppingBag, color: "text-violet-500", activeBg: "bg-violet-50",  activeText: "text-violet-700", activeBorder: "border-violet-500" },
   { href: "/customers", label: "Clientes",      Icon: Users,       color: "text-blue-500",   activeBg: "bg-blue-50",    activeText: "text-blue-700",   activeBorder: "border-blue-500"   },
   { href: "/inventory", label: "Inventario",    Icon: Layers,      color: "text-emerald-500",activeBg: "bg-emerald-50", activeText: "text-emerald-700",activeBorder: "border-emerald-500"},
