@@ -1,6 +1,6 @@
 import { Category, Store, SearchResults } from "@/types/explorar"
 
-const BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL}/explorar`
+const BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL}/explorar`
 
 // ENPOINTS PARA LISTAR CATEGORIAS
 export async function fetchCategories(): Promise<Category[]> {

@@ -2,6 +2,19 @@ import { AuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 
+const BACKEND_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  process.env.NEXT_PUBLIC_BACKEND_URL ??
+  ""
+
+function backendUrl(path: string) {
+  if (!BACKEND_BASE_URL) {
+    throw new Error("Falta configurar NEXT_PUBLIC_API_URL o NEXT_PUBLIC_BACKEND_URL")
+  }
+
+  return `${BACKEND_BASE_URL.replace(/\/$/, "")}/${path.replace(/^\//, "")}`
+}
+
 export const authOptions: AuthOptions = {
   session: { strategy: "jwt" },
 
@@ -20,24 +33,28 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password,
-            }),
-          }
-        )
+        const res = await fetch(backendUrl("/auth/login"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: credentials.email,
+            password: credentials.password,
+          }),
+        })
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
           throw new Error((body as { message?: string }).message ?? "Credenciales inválidas")
         }
         const { token, user } = await res.json() as {
           token: string
-          user: { id: string; email: string; firstName?: string; lastName?: string; avatarUrl?: string; role: string }
+          user: {
+            id: string
+            email: string
+            firstName?: string
+            lastName?: string
+            avatarUrl?: string
+            role: "CLIENT" | "VENDOR" | "ADMIN"
+          }
         }
         return {
           id: user.id,
@@ -71,23 +88,20 @@ export const authOptions: AuthOptions = {
       }
 
       if (account?.provider === "google" && user) {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/google`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              googleId: account.providerAccountId,
-              email: user.email,
-              name: user.name,
-              picture: user.image,
-            }),
-          }
-        )
+        const res = await fetch(backendUrl("/auth/google"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            googleId: account.providerAccountId,
+            email: user.email,
+            name: user.name,
+            picture: user.image,
+          }),
+        })
         if (res.ok) {
           const { token: backendToken, user: backendUser } = await res.json() as {
             token: string
-            user: { id: string; role: string }
+            user: { id: string; role: "CLIENT" | "VENDOR" | "ADMIN" }
           }
           token.id = backendUser.id
           token.role = backendUser.role

@@ -1,6 +1,6 @@
 import { StoreDetail, StoreProductsResponse, PaymentMethod, ProductDetail } from "@/types/explorar"
 
-const BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL}/explorar`
+const BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL}/explorar`
 
 // OBTENER DETALLE COMPLETO DE UNA TIENDA
 export async function fetchStoreById(id: string): Promise<StoreDetail | null> {

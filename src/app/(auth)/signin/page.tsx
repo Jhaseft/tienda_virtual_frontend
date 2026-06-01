@@ -1,9 +1,20 @@
 "use client"
 
 import { Suspense, useState } from "react"
-import { signIn } from "next-auth/react"
+import { signIn, getSession } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+
+const ADMIN_PATHS = ["/orders", "/customers", "/inventory", "/stats", "/settings"]
+
+function resolveRedirect(role: string | undefined, callbackUrl: string): string {
+  if (role === "VENDOR" || role === "ADMIN") {
+    // Si venía de una ruta admin explícita, respetarla; si no, ir a /orders
+    const isAdminCallback = ADMIN_PATHS.some((p) => callbackUrl.startsWith(p))
+    return isAdminCallback ? callbackUrl : "/orders"
+  }
+  return callbackUrl
+}
 
 function SignInContent() {
   const router = useRouter()
@@ -22,8 +33,12 @@ function SignInContent() {
         password: formData.get("password") as string,
         redirect: false,
       })
-      if (result?.error) setError("Email o contraseña incorrectos.")
-      else router.push(callbackUrl)
+      if (result?.error) {
+        setError("Email o contraseña incorrectos.")
+      } else {
+        const session = await getSession()
+        router.push(resolveRedirect(session?.user?.role, callbackUrl))
+      }
     } finally {
       setIsPending(false)
     }

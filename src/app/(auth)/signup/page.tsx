@@ -27,7 +27,18 @@ const COUNTRIES = [
   { code: "+55",  flag: "🇧🇷" },
 ]
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL
+const BACKEND =
+  process.env.NEXT_PUBLIC_API_URL ??
+  process.env.NEXT_PUBLIC_BACKEND_URL ??
+  ""
+
+function backendUrl(path: string) {
+  if (!BACKEND) {
+    throw new Error("Falta configurar NEXT_PUBLIC_API_URL o NEXT_PUBLIC_BACKEND_URL")
+  }
+
+  return `${BACKEND.replace(/\/$/, "")}/${path.replace(/^\//, "")}`
+}
 
 /* ── Countdown hook ── */
 function useCountdown(seconds: number) {
@@ -128,7 +139,7 @@ function StepInfoGoogle({
     setErr("")
     setLoading(true)
     try {
-      const res = await fetch(`${BACKEND}/auth/complete-profile`, {
+      const res = await fetch(backendUrl("/auth/complete-profile"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -234,7 +245,7 @@ function StepInfoEmail({
     setErr("")
     setLoading(true)
     try {
-      const res = await fetch(`${BACKEND}/auth/register`, {
+      const res = await fetch(backendUrl("/auth/register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -354,7 +365,7 @@ function StepVerify({
     setErr("")
     setLoading(true)
     try {
-      const res = await fetch(`${BACKEND}/auth/verify-otp`, {
+      const res = await fetch(backendUrl("/auth/verify-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -379,7 +390,7 @@ function StepVerify({
 
   async function handleResend() {
     try {
-      await fetch(`${BACKEND}/auth/resend-otp`, {
+      await fetch(backendUrl("/auth/resend-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ target, type: isWhatsApp ? "WHATSAPP" : "EMAIL" }),
