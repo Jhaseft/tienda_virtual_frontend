@@ -161,6 +161,125 @@ export async function updateStorePaymentMethod(
   });
 }
 
+export interface CreateProductPayload {
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  categoryId?: string;
+  isVisible?: boolean;
+  isAvailable?: boolean;
+}
+
+export interface ProductOptionPayload {
+  sizes?: { size: string }[];
+  colors?: { name: string; hexCode?: string }[];
+}
+
+export interface ProductPhoto {
+  id: string;
+  url: string;
+  publicId: string;
+  order: number;
+}
+
+export interface UpdateProductPayload {
+  name?: string
+  description?: string
+  price?: number
+  stock?: number
+  categoryId?: string | null
+  isVisible?: boolean
+  isAvailable?: boolean
+}
+
+export async function updateProduct(
+  productId: string,
+  payload: UpdateProductPayload,
+  { token }: ApiParams
+) {
+  return apiRequest<Awaited<ReturnType<typeof getAdminProductById>>>(
+    `/products/admin/${productId}`,
+    { method: "PATCH", token, body: payload }
+  )
+}
+
+export async function getAdminProductById(
+  productId: string,
+  { token }: ApiParams
+) {
+  return apiRequest<{
+    id: string
+    name: string
+    description: string | null
+    price: number
+    stock: number
+    isAvailable: boolean
+    isVisible: boolean
+    photos: { id: string; url: string; order: number }[]
+    sizes: { id: string; size: string; stock: number }[]
+    colors: { id: string; name: string; hexCode: string | null; stock: number }[]
+    category: { id: string; name: string } | null
+    store: { id: string; name: string; logoUrl: string | null; whatsapp: string | null; city: string | null }
+  }>(`/products/admin/${productId}`, { token })
+}
+
+export async function deleteProduct(
+  productId: string,
+  { token }: ApiParams
+): Promise<void> {
+  await apiRequest(`/products/admin/${productId}`, { method: "DELETE", token })
+}
+
+export async function createProduct(
+  payload: CreateProductPayload,
+  { token }: ApiParams
+): Promise<InventoryItem> {
+  const response = await apiRequest<BackendInventoryItem>("/products/admin", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+  return mapInventoryItem(response);
+}
+
+export async function setProductOptions(
+  productId: string,
+  payload: ProductOptionPayload,
+  { token }: ApiParams
+): Promise<void> {
+  await apiRequest(`/products/admin/${productId}/options`, {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export async function uploadProductPhoto(
+  file: File,
+  productId: string,
+  { token }: ApiParams
+): Promise<ProductPhoto> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("productId", productId);
+  return apiRequest<ProductPhoto>("/uploads/product-photo", {
+    method: "POST",
+    token,
+    body: formData,
+  });
+}
+
+export async function deleteProductPhoto(
+  photoId: string,
+  { token }: ApiParams
+): Promise<void> {
+  await apiRequest(`/uploads/product-photo/${photoId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
 export async function uploadStoreImage(
   file: File,
   type: "logo" | "qr",

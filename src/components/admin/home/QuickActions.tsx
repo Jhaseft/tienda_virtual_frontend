@@ -9,7 +9,7 @@ interface Props {
 }
 
 const ACTIONS = [
-  { label: "Nuevo producto", Icon: PlusCircle, href: "/inventory/new", color: "text-violet-600", bg: "bg-violet-50" },
+  { label: "Nuevo producto", Icon: PlusCircle, href: "/products/new", color: "text-violet-600", bg: "bg-violet-50" },
   { label: "Ver mi tienda",  Icon: Store,      href: "",               color: "text-emerald-600", bg: "bg-emerald-50" },
 ]
 

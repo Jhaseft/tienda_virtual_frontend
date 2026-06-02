@@ -14,7 +14,6 @@ export default function ProductColorSelector({ colors, onSelect }: Props) {
   if (colors.length === 0) return null
 
   function handleSelect(color: ProductColor) {
-    if (color.stock === 0) return
     const newVal = selected === color.id ? null : color.id
     setSelected(newVal)
     onSelect?.(newVal ? color : null)
@@ -26,17 +25,13 @@ export default function ProductColorSelector({ colors, onSelect }: Props) {
       <div className="flex flex-wrap gap-2">
         {colors.map(color => {
           const isSelected = selected === color.id
-          const isOut = color.stock === 0
           return (
             <button
               key={color.id}
               onClick={() => handleSelect(color)}
-              disabled={isOut}
-              title={isOut ? `${color.name} - Agotado` : color.name}
+              title={color.name}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border-2 transition-all ${
-                isOut
-                  ? "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"
-                  : isSelected
+                isSelected
                   ? "border-violet-600 bg-violet-50 text-violet-700"
                   : "border-gray-200 bg-white text-gray-700 hover:border-violet-300"
               }`}

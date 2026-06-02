@@ -94,7 +94,7 @@ export default function AdminBottomNav() {
           <div className="flex flex-col items-center justify-center flex-1 py-1">
             <button
               type="button"
-              onClick={() => router.push("/inventory/new")}
+              onClick={() => router.push("/products/new")}
               className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-600 shadow-lg shadow-violet-200 hover:bg-violet-700 active:scale-95 transition-all"
               aria-label="Agregar producto"
             >

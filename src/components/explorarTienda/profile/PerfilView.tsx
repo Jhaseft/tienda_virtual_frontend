@@ -1,9 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import type { UserProfile } from '@/types/user'
+import CreateStoreModal from './CreateStoreModal'
 
 interface Props {
   user: UserProfile
@@ -28,9 +30,16 @@ export default function PerfilView({ user }: Props) {
     .filter(Boolean)
     .join('')
     .toUpperCase() || 'U'
+  const [showCreateStore, setShowCreateStore] = useState(false)
 
   return (
     <div className="flex flex-col gap-6">
+      {showCreateStore && (
+        <CreateStoreModal
+          onClose={() => setShowCreateStore(false)}
+          onCreated={() => { setShowCreateStore(false); window.location.href = '/products' }}
+        />
+      )}
       {/* Header de perfil */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-5">
         {/* Avatar */}
@@ -81,6 +90,41 @@ export default function PerfilView({ user }: Props) {
           ))}
         </div>
       ))}
+
+      {/* Crear / Ver tienda */}
+      {user.store?.id ? (
+        <a
+          href="/products"
+          className="w-full flex items-center gap-4 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-700 hover:to-violet-600 text-white rounded-2xl px-5 py-4 shadow-lg shadow-violet-200 transition-all active:scale-[0.98]"
+        >
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+            <StoreIcon />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-bold">Panel de mi tienda</p>
+            <p className="text-[11px] text-violet-200 mt-0.5">Gestiona productos, pedidos y clientes</p>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="opacity-70">
+            <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </a>
+      ) : (
+        <button
+          onClick={() => setShowCreateStore(true)}
+          className="w-full flex items-center gap-4 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-700 hover:to-violet-600 text-white rounded-2xl px-5 py-4 shadow-lg shadow-violet-200 transition-all active:scale-[0.98]"
+        >
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+            <StoreIcon />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-bold">Crear mi tienda</p>
+            <p className="text-[11px] text-violet-200 mt-0.5">Empieza a vender tus productos hoy</p>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="opacity-70">
+            <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
 
       {/* Cerrar sesión */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -156,6 +200,16 @@ function InfoIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
       <path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function StoreIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 9l1-5h16l1 5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M3 9a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0" stroke="white" strokeWidth="1.8" />
+      <path d="M5 9v11h14V9" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 }

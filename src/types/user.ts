@@ -9,6 +9,7 @@ export interface UserProfile {
   isProfileComplete: boolean
   notificationsEnabled: boolean
   createdAt: string
+  store?: { id: string } | null
 }
 
 export interface FavoriteProduct {

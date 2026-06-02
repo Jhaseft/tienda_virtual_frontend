@@ -78,8 +78,10 @@ export const authOptions: AuthOptions = {
 
   callbacks: {
     async jwt({ token, user, account, trigger, session }) {
-      if (trigger === "update" && (session as { backendToken?: string } | null)?.backendToken) {
-        token.backendToken = (session as { backendToken: string }).backendToken
+      if (trigger === "update" && session) {
+        const s = session as { backendToken?: string; role?: string }
+        if (s.backendToken) token.backendToken = s.backendToken
+        if (s.role) token.role = s.role as "CLIENT" | "VENDOR" | "ADMIN"
       }
       if (user) {
         token.id = user.id
