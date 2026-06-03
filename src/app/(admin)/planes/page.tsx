@@ -18,6 +18,7 @@ export default function PlanesPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [subscription, setSubscription] = useState<MySubscription | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [confirmPlan, setConfirmPlan] = useState<{ plan: Plan; method: "qr" | "stripe" } | null>(null)
 
   useEffect(() => {
     if (status === "loading") return
@@ -33,12 +34,21 @@ export default function PlanesPage() {
       .finally(() => setIsLoading(false))
   }, [token, status])
 
-  const handleSelectQr = (planId: string) => {
-    router.push(`/planes/pago?method=qr&planId=${planId}`)
+  const navigate = (planId: string, method: "qr" | "stripe") => {
+    if (method === "qr") router.push(`/planes/pago?method=qr&planId=${planId}`)
+    else router.push(`/planes/pago/stripe?planId=${planId}`)
   }
 
-  const handleSelectStripe = (planId: string) => {
-    router.push(`/planes/pago/stripe?planId=${planId}`)
+  const handleSelectQr = (plan: Plan) => {
+    const excess = subscription ? subscription.productsUsed - plan.maxProducts : 0
+    if (plan.maxProducts !== -1 && excess > 0) { setConfirmPlan({ plan, method: "qr" }); return }
+    navigate(plan.id, "qr")
+  }
+
+  const handleSelectStripe = (plan: Plan) => {
+    const excess = subscription ? subscription.productsUsed - plan.maxProducts : 0
+    if (plan.maxProducts !== -1 && excess > 0) { setConfirmPlan({ plan, method: "stripe" }); return }
+    navigate(plan.id, "stripe")
   }
 
   if (isLoading) return (
@@ -97,11 +107,46 @@ export default function PlanesPage() {
               key={plan.id}
               plan={plan}
               isCurrentPlan={subscription?.plan?.id === plan.id && subscription.status === "ACTIVE"}
-              onSelectQr={() => handleSelectQr(plan.id)}
-              onSelectStripe={() => handleSelectStripe(plan.id)}
+              onSelectQr={() => handleSelectQr(plan)}
+              onSelectStripe={() => handleSelectStripe(plan)}
             />
           ))}
         </div>
+
+        {/* Modal de confirmación cuando hay productos en exceso */}
+        {confirmPlan && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-6">
+            <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm flex flex-col gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">¿Cambiar a {confirmPlan.plan.name}?</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Tienes <strong>{subscription?.productsUsed}</strong> productos pero este plan permite{" "}
+                  <strong>{confirmPlan.plan.maxProducts}</strong>. Los{" "}
+                  <strong>{(subscription?.productsUsed ?? 0) - confirmPlan.plan.maxProducts}</strong> productos
+                  extra se <strong>ocultarán automáticamente</strong> (no se eliminarán). Podrás recuperarlos
+                  subiendo de plan.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => { navigate(confirmPlan.plan.id, confirmPlan.method); setConfirmPlan(null) }}
+                  className="w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold text-sm active:scale-95 transition"
+                >
+                  Entendido, continuar
+                </button>
+                <button
+                  onClick={() => setConfirmPlan(null)}
+                  className="w-full py-3 rounded-2xl border border-gray-200 text-gray-600 font-semibold text-sm active:scale-95 transition"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="-mt-5">
                   <PageFooterHint message="Todos los planes incluyen soporte por WhatsApp" />

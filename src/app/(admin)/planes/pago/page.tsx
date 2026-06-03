@@ -26,9 +26,13 @@ export default function PagoQrPage() {
   const [paymentId, setPaymentId] = useState("")
   const [errorMsg, setErrorMsg] = useState("")
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const initCalledRef = useRef(false)
 
   useEffect(() => {
     if (status === "loading" || !token || !planId) return
+    if (initCalledRef.current) return
+    initCalledRef.current = true
+
     initQrPayment(token, planId)
       .then((res) => {
         setPaymentId(res.paymentId)

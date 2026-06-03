@@ -134,7 +134,6 @@ export default function AdminProductDetailPage() {
         <div>
           <ProductImageCarousel photos={product.photos} productName={product.name} />
 
-          {/* Badge visibilidad */}
           <div className="mt-3 flex items-center gap-2">
             {product.isVisible ? (
               <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
@@ -157,7 +156,6 @@ export default function AdminProductDetailPage() {
           )}
         </div>
 
-        {/* Derecha: vista o edición */}
         {editing ? (
           <ProductEditForm
             product={{

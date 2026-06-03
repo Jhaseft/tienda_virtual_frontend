@@ -33,6 +33,7 @@ type InventoryQueryParams = {
   search?: string;
   page?: number;
   limit?: number;
+  isVisible?: boolean;
 };
 
 export async function getAdminOrders(
@@ -99,6 +100,7 @@ export async function getAdminInventory(
   if (params.search) query.set("search", params.search);
   if (params.page) query.set("page", String(params.page));
   if (params.limit) query.set("limit", String(params.limit));
+  if (params.isVisible !== undefined) query.set("isVisible", String(params.isVisible));
 
   return apiRequest<PaginatedResponse<InventoryItem>>(
     `/products/admin/inventory${query.toString() ? `?${query.toString()}` : ""}`,
