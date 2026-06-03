@@ -67,6 +67,9 @@ export default function AdminProductDetailPage() {
       title={editing ? "Editando producto" : product.name}
       subtitle={editing ? "Modifica los datos del producto" : (product.category?.name ?? "Producto")}
     >
+
+      
+
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-6">
           <div className="bg-white rounded-3xl shadow-2xl p-7 w-full max-w-sm flex flex-col items-center gap-4 text-center">

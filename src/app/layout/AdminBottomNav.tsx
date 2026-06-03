@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Package, ShoppingBag, MoreHorizontal, Plus, BarChart2, Store, X, Layers } from "lucide-react";
+import { Home, Package, Crown, ShoppingBag, MoreHorizontal, Plus, BarChart2, Store, X, Layers } from "lucide-react";
 import { useState } from "react";
 
 const LEFT_ITEMS = [
-  { href: "/dashboard", label: "Inicio",    Icon: Home    },
+  { href: "/dashboard", label: "Inicio", Icon: Home },
   { href: "/products", label: "Productos", Icon: Package },
 ];
 
@@ -15,8 +15,9 @@ const RIGHT_ITEMS = [
 ];
 
 const MORE_ITEMS = [
-  { href: "/stats",    label: "Estadísticas", Icon: BarChart2, color: "text-amber-600",  bg: "bg-amber-50"  },
-  { href: "/settings", label: "Mi tienda",    Icon: Store,     color: "text-rose-600",   bg: "bg-rose-50"   },
+  { href: "/planes", label: "Planes", Icon: Crown, color: "text-violet-600", bg: "bg-violet-50" },
+  { href: "/stats", label: "Estadísticas", Icon: BarChart2, color: "text-amber-600", bg: "bg-amber-50" },
+  { href: "/settings", label: "Mi tienda", Icon: Store, color: "text-rose-600", bg: "bg-rose-50" },
   { href: "/inventory", label: "Inventario", Icon: Layers, color: "text-violet-600", bg: "bg-violet-50" },
 ];
 

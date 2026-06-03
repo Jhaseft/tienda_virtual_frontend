@@ -12,12 +12,17 @@ import ProductSizePicker from "@/components/admin/products/ProductSizePicker"
 import ProductColorPicker, { type ColorOption } from "@/components/admin/products/ProductColorPicker"
 import ProductVisibilityToggle from "@/components/admin/products/ProductVisibilityToggle"
 import { createProduct, uploadProductPhoto, setProductOptions } from "@/lib/api/admin"
+import { getMySubscription } from "@/lib/api/subscriptions"
+import type { MySubscription } from "@/lib/api/subscriptions"
+import ProductLimitBlock from "@/components/admin/subscription/ProductLimitBlock"
 
 export default function NewProductPage() {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { data: session, status: sessionStatus } = useSession()
   const token = session?.user.backendToken
 
+  const [subscription, setSubscription] = useState<MySubscription | null>(null)
+  const [subLoading, setSubLoading] = useState(true)
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
@@ -37,8 +42,15 @@ export default function NewProductPage() {
     fetch(`${base}/explorar/categorias`)
       .then((r) => r.json())
       .then((data: Category[]) => setCategories(data))
-      .catch(() => {})
+      .catch(() => { })
   }, [])
+
+  useEffect(() => {
+    if (!token) return
+    getMySubscription(token)
+      .then(setSubscription)
+      .finally(() => setSubLoading(false))
+  }, [token])
 
   function handleInfoChange(field: string, value: string) {
     if (field === "name") setName(value)
@@ -94,6 +106,12 @@ export default function NewProductPage() {
 
       setShowSuccess(true)
     } catch (err: unknown) {
+      const status = (err as { status?: number })?.status
+      if (status === 403) {
+        const sub = token ? await getMySubscription(token).catch(() => null) : null
+        if (sub) setSubscription(sub)
+        return
+      }
       setError(err instanceof Error ? err.message : "No se pudo crear el producto.")
     } finally {
       setSaving(false)
@@ -102,8 +120,39 @@ export default function NewProductPage() {
 
   const isValid = name.trim() !== "" && Number(price) > 0 && stock !== "" && Number(stock) >= 0
 
+  if (subLoading) return (
+    <AdminShell title="Nuevo producto">
+      <div className="flex items-center justify-center pt-20">
+        <Loader2 size={28} className="animate-spin text-violet-500" />
+      </div>
+    </AdminShell>
+  )
+
+  if (subscription && !subscription.canCreateProducts) return (
+    <AdminShell title="Nuevo producto">
+      <ProductLimitBlock
+        productsUsed={subscription.productsUsed}
+        productsLimit={subscription.productsLimit}
+        status={subscription.status}
+      />
+    </AdminShell>
+  )
+
   return (
     <AdminShell title="Nuevo producto" subtitle="Completa los datos del producto">
+
+      <div className="flex items-center gap-3 self-start w-full mb-2">
+        <button
+          onClick={() => router.back()}
+          className="w-9 h-9 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-colors text-gray-700"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <h1 className="text-base font-bold text-gray-900">Volver a productos</h1>
+      </div>
+
       {showSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-6">
           <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center gap-4 text-center">
