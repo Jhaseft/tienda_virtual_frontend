@@ -66,9 +66,8 @@ export default function DashboardPage() {
             hint="ver todos"
             href="/inventory"
             Icon={Package}
-            from="from-emerald-500"
-            to="to-emerald-400"
-            shadow="shadow-emerald-100"
+            iconBg="bg-emerald-50"
+            iconColor="text-emerald-600"
           />
           <MetricCard
             title="Pedidos"
@@ -76,9 +75,8 @@ export default function DashboardPage() {
             hint="ver todos"
             href="/orders"
             Icon={ShoppingBag}
-            from="from-violet-500"
-            to="to-violet-400"
-            shadow="shadow-violet-100"
+            iconBg="bg-violet-50"
+            iconColor="text-violet-600"
           />
           <MetricCard
             title="Stock bajo"
@@ -86,9 +84,8 @@ export default function DashboardPage() {
             hint="ver todos"
             href="/inventory"
             Icon={AlertTriangle}
-            from="from-amber-500"
-            to="to-amber-400"
-            shadow="shadow-amber-100"
+            iconBg="bg-amber-50"
+            iconColor="text-amber-600"
           />
           <MetricCard
             title="Clientes"
@@ -96,9 +93,8 @@ export default function DashboardPage() {
             hint="ver todos"
             href="/customers"
             Icon={Users}
-            from="from-blue-500"
-            to="to-blue-400"
-            shadow="shadow-blue-100"
+            iconBg="bg-blue-50"
+            iconColor="text-blue-600"
           />
         </div>
 

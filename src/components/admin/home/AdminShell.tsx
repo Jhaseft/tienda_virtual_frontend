@@ -6,6 +6,7 @@ import { ShoppingBag, Users, Layers, BarChart2, Store } from "lucide-react";
 import AdminBottomNav from "../../../app/layout/AdminBottomNav";
 import AdminHeader from "./AdminHeader";
 import AdminSidebar from "../../../app/layout/AdminSidebar";
+import AdminTopBar from "../../../app/layout/AdminTopBar";
 
 interface Props {
   title: string;
@@ -29,38 +30,47 @@ export default function AdminShell({ title, subtitle, children, rightSlot, hideH
   const meta = PAGE_META[base] ?? PAGE_META["/orders"];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <AdminSidebar />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Top bar fixed — solo desktop */}
+      <div className="hidden md:block">
+        <AdminTopBar />
+      </div>
 
-      <div className="flex flex-col flex-1 min-h-screen overflow-hidden">
-        {!hideHeader && (
-          <div className="md:hidden">
-            <AdminHeader title={title} subtitle={subtitle} rightSlot={rightSlot} />
-          </div>
-        )}
+      <div className="flex md:pt-14 h-screen overflow-hidden">
+        <AdminSidebar />
 
-        {!hideHeader && (
-          <div className="hidden md:flex items-center justify-between px-8 py-5 bg-white border-b border-gray-100">
-            <div className="flex items-center gap-4">
-              <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${meta.bg} ${meta.color}`}>
-                {meta.icon}
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900 leading-tight">{title}</h1>
-                {subtitle && (
-                  <p className="text-[13px] text-gray-400 leading-tight mt-0.5">{subtitle}</p>
-                )}
-              </div>
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Header mobile */}
+          {!hideHeader && (
+            <div className="md:hidden">
+              <AdminHeader title={title} subtitle={subtitle} rightSlot={rightSlot} />
             </div>
-            {rightSlot && <div>{rightSlot}</div>}
-          </div>
-        )}
+          )}
 
-        <main className="flex-1 px-4 py-5 pb-24 md:px-8 md:py-6 md:pb-6">
-          {children}
-        </main>
+          {/* Sub-header de página en desktop */}
+          {!hideHeader && (
+            <div className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${meta.bg} ${meta.color}`}>
+                  {meta.icon}
+                </div>
+                <div>
+                  <h1 className="text-base font-bold text-gray-900 leading-tight">{title}</h1>
+                  {subtitle && (
+                    <p className="text-[12px] text-gray-400 leading-tight mt-0.5">{subtitle}</p>
+                  )}
+                </div>
+              </div>
+              {rightSlot && <div>{rightSlot}</div>}
+            </div>
+          )}
 
-        <AdminBottomNav />
+          <main className="flex-1 overflow-y-auto px-4 py-5 pb-24 md:px-8 md:py-6 md:pb-6">
+            {children}
+          </main>
+
+          <AdminBottomNav />
+        </div>
       </div>
     </div>
   );

@@ -2,78 +2,93 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Users, Layers, BarChart2, Store, Home, ChevronRight, Package, Crown } from "lucide-react";
+import { ShoppingBag, Users, Layers, BarChart2, Store, Home, Package, Crown, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useEffect, useSyncExternalStore, useState } from "react";
+import { useSession } from "next-auth/react";
+import ToggleButton from "./ToggleButton";
+import NavItem from "./NavItem";
+import { getMySubscription, type MySubscription } from "@/lib/api/subscriptions";
 
-const ITEMS: { href: string; label: string; Icon: LucideIcon; color: string; activeBg: string; activeText: string; activeBorder: string }[] = [
-  { href: "/dashboard", label: "Inicio", Icon: Home, color: "text-gray-500", activeBg: "bg-gray-100", activeText: "text-gray-900", activeBorder: "border-gray-500" },
-  { href: "/products", label: "Productos", Icon: Package, color: "text-violet-500", activeBg: "bg-violet-50", activeText: "text-violet-700", activeBorder: "border-violet-500" },
-  { href: "/orders", label: "Pedidos", Icon: ShoppingBag, color: "text-violet-500", activeBg: "bg-violet-50", activeText: "text-violet-700", activeBorder: "border-violet-500" },
-  { href: "/customers", label: "Clientes", Icon: Users, color: "text-blue-500", activeBg: "bg-blue-50", activeText: "text-blue-700", activeBorder: "border-blue-500" },
-  { href: "/inventory", label: "Inventario", Icon: Layers, color: "text-emerald-500", activeBg: "bg-emerald-50", activeText: "text-emerald-700", activeBorder: "border-emerald-500" },
-  { href: "/planes", label: "Planes", Icon: Crown, color: "text-violet-500", activeBg: "bg-violet-50", activeText: "text-violet-700", activeBorder: "border-violet-500" },
-  { href: "/stats", label: "Estadísticas", Icon: BarChart2, color: "text-amber-500", activeBg: "bg-amber-50", activeText: "text-amber-700", activeBorder: "border-amber-500" },
-  { href: "/settings", label: "Mi tienda", Icon: Store, color: "text-rose-500", activeBg: "bg-rose-50", activeText: "text-rose-700", activeBorder: "border-rose-500" },
+const ITEMS: { href: string; label: string; Icon: LucideIcon }[] = [
+  { href: "/dashboard", label: "Inicio",       Icon: Home        },
+  { href: "/products",  label: "Productos",    Icon: Package     },
+  { href: "/orders",    label: "Pedidos",      Icon: ShoppingBag },
+  { href: "/customers", label: "Clientes",     Icon: Users       },
+  { href: "/inventory", label: "Inventario",   Icon: Layers      },
+  { href: "/planes",    label: "Planes",       Icon: Crown       },
+  { href: "/stats",     label: "Estadísticas", Icon: BarChart2   },
+  { href: "/settings",  label: "Mi tienda",    Icon: Store       },
 ];
+
+const KEY = "sidebar-expanded";
+
+function subscribe(cb: () => void) {
+  window.addEventListener(KEY, cb);
+  return () => window.removeEventListener(KEY, cb);
+}
+function getSnapshot() {
+  const v = localStorage.getItem(KEY);
+  return v === null ? true : v === "true";
+}
+function getServerSnapshot() { return true; }
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const expanded = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [sub, setSub] = useState<MySubscription | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem(KEY, String(expanded));
+  }, [expanded]);
+
+  useEffect(() => {
+    const token = session?.user?.backendToken;
+    if (!token) return;
+    getMySubscription(token).then(setSub).catch(() => null);
+  }, [session?.user?.backendToken]);
+
+  function toggle() {
+    const next = !expanded;
+    localStorage.setItem(KEY, String(next));
+    window.dispatchEvent(new Event(KEY));
+  }
+
+  const isTrial = sub?.status === "TRIAL";
+  const daysLeft = sub?.daysLeft ?? 0;
 
   return (
-    <aside className="hidden md:flex w-56 shrink-0 flex-col bg-white border-r border-gray-100 h-screen sticky top-0 overflow-y-auto shadow-sm">
-
-      <div className="px-4 pt-4 pb-1">
-        <div className="relative bg-linear-to-br from-violet-600 to-violet-400 rounded-2xl px-4 py-4 shadow-lg shadow-violet-200 overflow-hidden">
-          <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-white/10" />
-          <div className="absolute -bottom-6 -right-2 w-16 h-16 rounded-full bg-white/10" />
-          <div className="relative flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/30">
-              <Store size={18} className="text-white" strokeWidth={2} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-white leading-tight">Panel Vendedor</p>
-              <p className="text-xs text-violet-200 leading-tight mt-0.5">Gestiona tu tienda</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <nav className="flex-1 px-4 py-2 flex flex-col gap-1">
-        {ITEMS.map(({ href, label, Icon, activeBg, activeText, color }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border ${active
-                ? `${activeBg} ${activeText} border-transparent`
-                : "text-gray-500 hover:bg-gray-50 hover:text-gray-800 border-transparent"
-                }`}
-            >
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${active ? "bg-white shadow-sm" : "bg-gray-50 group-hover:bg-white group-hover:shadow-sm"
-                }`}>
-                <Icon size={16} strokeWidth={active ? 2.25 : 1.75} className={active ? activeText : color} />
-              </div>
-              <span className="flex-1">{label}</span>
-              {active && <ChevronRight size={14} className="opacity-40" />}
-            </Link>
-          );
-        })}
+    <aside className={`hidden md:flex shrink-0 flex-col bg-linear-to-r from-emerald-50 to-white border-r border-emerald-100 h-full overflow-x-hidden overflow-y-auto transition-all duration-300 ease-in-out ${expanded ? "w-52" : "w-15"}`}>
+      <nav className="flex-1 px-2 pb-3 pt-2 flex flex-col gap-0.5">
+        {ITEMS.map(({ href, label, Icon }) => (
+          <NavItem key={href} href={href} label={label} Icon={Icon}
+            active={pathname === href || pathname.startsWith(`${href}/`)} expanded={expanded} />
+        ))}
       </nav>
 
-
-      <div className="px-4 py-4">
-        <Link
-          href="/"
-          className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all"
-        >
-          <div className="w-8 h-8 rounded-xl bg-gray-50 group-hover:bg-white group-hover:shadow-sm flex items-center justify-center shrink-0 transition-all">
-            <Home size={16} strokeWidth={1.75} className="text-gray-400 group-hover:text-gray-600" />
+      {isTrial && expanded && (
+        <div className="mx-2 mb-2 rounded-2xl bg-linear-to-br from-[#0f172a] to-[#1e3a5f] p-4 shadow-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-7 h-7 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
+              <Zap size={14} className="text-blue-300" strokeWidth={2.5} />
+            </div>
+            <p className="text-xs font-bold text-white leading-tight">Período de prueba</p>
           </div>
-          <span>Ir a la tienda</span>
-        </Link>
-      </div>
+          <p className="text-[11px] text-blue-200 leading-snug mb-3">
+            Te {daysLeft === 1 ? "queda" : "quedan"}{" "}
+            <span className="text-white font-bold">{daysLeft} {daysLeft === 1 ? "día" : "días"}</span>{" "}
+            de prueba gratuita.
+          </p>
+          <Link href="/planes" className="block w-full text-center text-xs font-semibold text-[#0f172a] bg-white hover:bg-blue-50 rounded-xl py-2 transition-colors">
+            Elegir un plan →
+          </Link>
+        </div>
+      )}
 
+      <div className="px-2 pb-3">
+        <ToggleButton expanded={expanded} onClick={toggle} />
+      </div>
     </aside>
   );
 }
