@@ -129,7 +129,7 @@ export default function PerfilView({ user }: Props) {
       {/* Cerrar sesión */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <button
-          onClick={() => signOut({ callbackUrl: '/signin' })}
+          onClick={() => signOut({ callbackUrl: '/' })}
           className="w-full flex items-center justify-center gap-2 px-5 py-4 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors"
         >
           <LogOutIcon />
