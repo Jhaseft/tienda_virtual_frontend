@@ -6,18 +6,28 @@ import { useState } from "react"
 
 interface Props {
   storeId: string
+  storeSubdomain?: string | null
 }
+
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? ""
 
 const ACTIONS = [
   { label: "Nuevo producto", Icon: PlusCircle, href: "/products/new", color: "text-violet-600", bg: "bg-violet-50" },
   { label: "Ver mi tienda",  Icon: Store,      href: "",               color: "text-emerald-600", bg: "bg-emerald-50" },
 ]
 
-export default function QuickActions({ storeId }: Props) {
+export default function QuickActions({ storeId, storeSubdomain }: Props) {
   const [copied, setCopied] = useState(false)
 
+  const storeUrl =
+    storeSubdomain && ROOT_DOMAIN
+      ? `https://${storeSubdomain}.${ROOT_DOMAIN}`
+      : null
+
+  const internalStoreHref = storeUrl ?? `/tiendas/${storeId}`
+
   function handleShare() {
-    const url = `${window.location.origin}/tiendas/${storeId}`
+    const url = storeUrl ?? `${window.location.origin}/tiendas/${storeId}`
     if (navigator.share) {
       navigator.share({ title: "Mi tienda", url })
     } else {
@@ -33,7 +43,8 @@ export default function QuickActions({ storeId }: Props) {
       {ACTIONS.map(({ label, Icon, href, color, bg }) => (
         <Link
           key={label}
-          href={href || `/tiendas/${storeId}`}
+          href={href || internalStoreHref}
+          target={!href && storeUrl ? "_blank" : undefined}
           className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all"
         >
           <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center shrink-0`}>

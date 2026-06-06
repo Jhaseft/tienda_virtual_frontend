@@ -2,6 +2,14 @@ import { StoreDetail, StoreProductsResponse, PaymentMethod, ProductDetail } from
 
 const BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL}/explorar`
 
+// RESOLVER SUBDOMINIO A ID DE TIENDA
+export async function fetchStoreIdBySubdomain(subdomain: string): Promise<string | null> {
+    const res = await fetch(`${BASE}/tiendas/by-subdomain/${subdomain}`, { cache: "no-store" })
+    if (!res.ok) return null
+    const data = (await res.json()) as { id: string }
+    return data.id
+}
+
 // OBTENER DETALLE COMPLETO DE UNA TIENDA
 export async function fetchStoreById(id: string): Promise<StoreDetail | null> {
     const res = await fetch(`${BASE}/tiendas/${id}`, { cache: "no-store" })

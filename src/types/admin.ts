@@ -92,6 +92,7 @@ export interface StorePaymentMethod {
 
 export interface StoreSettings {
   id: string;
+  subdomain?: string | null;
   name: string;
   description?: string | null;
   whatsapp?: string | null;
@@ -145,6 +146,7 @@ export interface DashboardStats {
   ownerName: string | null;
   storeName: string | null;
   storeId: string;
+  storeSubdomain?: string | null;
   salesToday: { total: number; count: number };
   totalProducts: number;
   totalOrders: number;
