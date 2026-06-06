@@ -37,6 +37,9 @@ firebase_capacidades.txt
 neon_capacidades.txt
 supabase_capacidades.txt
 
+# Claude Code local settings (puede contener tokens en allow rules)
+.claude/
+
 # vercel
 .vercel
 
