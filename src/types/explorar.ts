@@ -61,6 +61,7 @@ export interface StoreDetail {
     followers: number
     products: number
   }
+  socialLinks: { id: string; network: import("@/types/admin").SocialNetwork; url: string }[]
 }
 
 export interface StoreProduct {

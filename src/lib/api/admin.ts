@@ -7,6 +7,7 @@ import type {
   DashboardStats,
   InventoryItem,
   PaginatedResponse,
+  StoreSocialLink,
   StoreSettings,
   UpdatePaymentMethodPayload,
   UpdateStoreSettingsPayload,
@@ -150,6 +151,36 @@ export async function updateStoreSettings(
     token,
     body: payload,
   });
+}
+
+export async function addSocialLink(
+  payload: { network: import("@/types/admin").SocialNetwork; url: string },
+  { token }: ApiParams
+): Promise<StoreSocialLink> {
+  return apiRequest<StoreSocialLink>("/stores/me/social-links", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export async function updateSocialLink(
+  id: string,
+  payload: { network?: import("@/types/admin").SocialNetwork; url?: string },
+  { token }: ApiParams
+): Promise<StoreSocialLink> {
+  return apiRequest<StoreSocialLink>(`/stores/me/social-links/${id}`, {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export async function deleteSocialLink(
+  id: string,
+  { token }: ApiParams
+): Promise<void> {
+  await apiRequest(`/stores/me/social-links/${id}`, { method: "DELETE", token });
 }
 
 export async function updateStorePaymentMethod(
