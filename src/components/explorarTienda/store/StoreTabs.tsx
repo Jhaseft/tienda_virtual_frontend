@@ -5,6 +5,7 @@ import Link from "next/link"
 import { StoreDetail, StoreProduct } from "@/types/explorar"
 import StoreProductsGrid from "./StoreProductsGrid"
 import StoreInfoTab from "./StoreInfoTab"
+import { useStorefront } from "@/contexts/StorefrontContext"
 
 type Tab = "productos" | "informacion"
 
@@ -17,8 +18,10 @@ interface Props {
 const PREVIEW_LIMIT = 8
 
 export default function StoreTabs({ store, products, totalProducts }: Props) {
+  const { isSubdomain } = useStorefront()
   const [active, setActive] = useState<Tab>("productos")
   const preview = products.slice(0, PREVIEW_LIMIT)
+  const allProductsHref = isSubdomain ? "/productos" : `/tiendas/${store.id}/productos`
 
   return (
     <div>
@@ -45,7 +48,7 @@ export default function StoreTabs({ store, products, totalProducts }: Props) {
           {totalProducts > PREVIEW_LIMIT && (
             <div className="flex justify-center">
               <Link
-                href={`/tiendas/${store.id}/productos`}
+                href={allProductsHref}
                 className="flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-2xl transition-colors shadow-sm shadow-violet-200"
               >
                 Ver todos los productos
