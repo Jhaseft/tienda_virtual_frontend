@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { followStore, unfollowStore, checkIsFollowing } from "@/app/(explorarTienda)/api/public-explorarTienda.api"
+import { useStorefront } from "@/contexts/StorefrontContext"
 
 interface Props {
   storeId: string
@@ -12,15 +13,21 @@ interface Props {
 
 export default function StoreActions({ storeId, whatsapp, onFollowChange }: Props) {
   const { data: session } = useSession()
+  const { isSubdomain, mainDomainStoreUrl } = useStorefront()
   const [following, setFollowing] = useState(false)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    if (isSubdomain) return
     if (!session?.user?.backendToken) return
     checkIsFollowing(storeId, session.user.backendToken).then(setFollowing)
-  }, [storeId, session?.user?.backendToken])
+  }, [storeId, session?.user?.backendToken, isSubdomain])
 
   async function handleFollow() {
+    if (isSubdomain) {
+      if (mainDomainStoreUrl) window.location.assign(mainDomainStoreUrl)
+      return
+    }
     if (!session?.user?.backendToken) return
     setLoading(true)
     try {
@@ -56,7 +63,7 @@ export default function StoreActions({ storeId, whatsapp, onFollowChange }: Prop
       </button>
       <button
         onClick={handleFollow}
-        disabled={loading || !session}
+        disabled={loading || (!isSubdomain && !session)}
         className={`flex-1 flex items-center justify-center gap-2 text-sm font-semibold py-3 rounded-2xl border-2 transition-colors disabled:opacity-40 ${
           following
             ? "border-violet-600 bg-violet-50 text-violet-600"

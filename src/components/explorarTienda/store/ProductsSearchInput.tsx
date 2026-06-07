@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
+import { useStorefront } from "@/contexts/StorefrontContext"
 
 interface Props {
   storeId: string
@@ -10,6 +11,7 @@ interface Props {
 
 export default function ProductsSearchInput({ storeId, initialValue = "" }: Props) {
   const router = useRouter()
+  const { isSubdomain } = useStorefront()
   const [value, setValue] = useState(initialValue)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isMounted = useRef(false)
@@ -26,11 +28,12 @@ export default function ProductsSearchInput({ storeId, initialValue = "" }: Prop
       const params = new URLSearchParams()
       params.set("page", "1")
       if (value.trim()) params.set("q", value.trim())
-      router.push(`/tiendas/${storeId}/productos?${params.toString()}`)
+      const base = isSubdomain ? "/productos" : `/tiendas/${storeId}/productos`
+      router.push(`${base}?${params.toString()}`)
     }, 400)
 
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [value, storeId, router])
+  }, [value, storeId, router, isSubdomain])
 
   return (
     <div className="relative w-full max-w-sm">

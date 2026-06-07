@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import { checkIsFavorite, addFavorite, removeFavorite, fetchStorePaymentMethods } from "@/app/(explorarTienda)/api/public-explorarTienda.api"
 import type { PaymentMethod } from "@/types/explorar"
 import PaymentModal from "./PaymentModal"
+import { useStorefront } from "@/contexts/StorefrontContext"
 
 interface Props {
   productId: string
@@ -21,6 +22,7 @@ export default function ProductActions({
   productId, productName, price, whatsapp, storeName, storeId, selectedSize, selectedColor,
 }: Props) {
   const { data: session } = useSession()
+  const { isSubdomain } = useStorefront()
   const [favorite, setFavorite] = useState(false)
   const [loadingFav, setLoadingFav] = useState(false)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
@@ -28,11 +30,18 @@ export default function ProductActions({
   const [loadingPay, setLoadingPay] = useState(false)
 
   useEffect(() => {
+    if (isSubdomain) return
     if (!session?.user?.backendToken) return
     checkIsFavorite(productId, session.user.backendToken).then(setFavorite)
-  }, [productId, session?.user?.backendToken])
+  }, [productId, session?.user?.backendToken, isSubdomain])
 
   async function handleFavorite() {
+    if (isSubdomain) {
+      const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "tiendamas.vip"
+      const target = `https://${rootDomain}/productos/${productId}`
+      window.location.assign(target)
+      return
+    }
     if (!session?.user?.backendToken) return
     setLoadingFav(true)
     try {
@@ -99,7 +108,7 @@ export default function ProductActions({
 
       <button
         onClick={handleFavorite}
-        disabled={loadingFav || !session}
+        disabled={loadingFav || (!isSubdomain && !session)}
         className={`w-full flex items-center justify-center gap-2 text-sm font-semibold py-3.5 rounded-2xl border-2 transition-all disabled:opacity-40 ${
           favorite
             ? "border-pink-400 bg-pink-50 text-pink-600"
