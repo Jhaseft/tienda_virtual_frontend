@@ -54,8 +54,15 @@ const authRoutes = ["/signin", "/signup"]
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // 1) Si viene del Cloudflare Worker, usa el header (preferido).
+  // 2) Si no, intenta extraer del host (cuando el wildcard sí llega directo).
+  const workerSub = request.headers.get("x-tenant-subdomain")
   const host = request.headers.get("host") ?? ""
-  const tenantSub = extractTenantSubdomain(host)
+  const tenantSub =
+    (workerSub && !RESERVED_SUBDOMAINS.has(workerSub.toLowerCase())
+      ? workerSub.toLowerCase()
+      : null) ?? extractTenantSubdomain(host)
+
   if (tenantSub && !pathname.startsWith("/_next") && !pathname.startsWith("/api")) {
     const url = request.nextUrl.clone()
     url.pathname = `/s/${tenantSub}${pathname === "/" ? "" : pathname}`
