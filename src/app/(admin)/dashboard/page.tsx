@@ -51,7 +51,7 @@ export default function DashboardPage() {
           ownerName={stats?.ownerName ?? null}
           storeName={stats?.storeName ?? null}
         />
-
+           <SubdomainCard />
         {subscription && <TrialBanner subscription={subscription} />}
 
 
@@ -59,7 +59,8 @@ export default function DashboardPage() {
           total={stats?.salesToday.total ?? 0}
           count={stats?.salesToday.count ?? 0}
         />
-
+       
+        
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <MetricCard
             title="Productos"
@@ -104,7 +105,7 @@ export default function DashboardPage() {
           storeSubdomain={stats?.storeSubdomain ?? null}
         />
 
-        <SubdomainCard />
+        
 
         <div className="-mt-4">
           <PageFooterHint message="Gestiona tu negocio de manera eficiente" />
