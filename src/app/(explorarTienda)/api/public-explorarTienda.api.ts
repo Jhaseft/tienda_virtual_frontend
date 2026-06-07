@@ -11,8 +11,10 @@ export async function fetchStoreIdBySubdomain(subdomain: string): Promise<string
 }
 
 // OBTENER DETALLE COMPLETO DE UNA TIENDA
-export async function fetchStoreById(id: string): Promise<StoreDetail | null> {
+// Retorna la tienda, null si no existe, o "unavailable" si expiró el trial/suscripción
+export async function fetchStoreById(id: string): Promise<StoreDetail | null | "unavailable"> {
     const res = await fetch(`${BASE}/tiendas/${id}`, { cache: "no-store" })
+    if (res.status === 403) return "unavailable"
     if (!res.ok) return null
     return res.json()
 }

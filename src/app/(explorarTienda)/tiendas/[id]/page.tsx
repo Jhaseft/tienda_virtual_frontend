@@ -10,6 +10,7 @@ import ShareButton from "@/components/explorarTienda/store/ShareButton"
 import StoreStats from "@/components/explorarTienda/store/StoreStats"
 import PaymentMethodsRow from "@/components/explorarTienda/store/PaymentMethodsRow"
 import StoreTabs from "@/components/explorarTienda/store/StoreTabs"
+import StoreUnavailable from "@/components/explorarTienda/store/StoreUnavailable"
 
 interface Props {
   params: Promise<{ id: string }>
@@ -24,7 +25,9 @@ export default async function StoreDetailPage({ params }: Props) {
     fetchStorePaymentMethods(id),
   ])
 
+  if (store === "unavailable") return <StoreUnavailable />
   if (!store) notFound()
+  const storeData = store as Exclude<typeof store, null | "unavailable">
 
   return (
     <main className="min-h-screen bg-gray-50 pt-1 md:pt-15">
@@ -47,25 +50,25 @@ export default async function StoreDetailPage({ params }: Props) {
             <div className="flex-1 min-w-0">
               <StoreHeader store={store} />
             </div>
-            <ShareButton storeName={store.name} />
+            <ShareButton storeName={storeData.name} />
           </div>
 
           <StoreStats
-            storeId={store.id}
-            whatsapp={store.whatsapp}
-            rating={store.rating}
-            totalReviews={store.totalReviews}
-            totalSales={store.totalSales}
-            initialFollowers={store._count.followers}
-            totalProducts={store._count.products}
-            socialLinks={store.socialLinks}
+            storeId={storeData.id}
+            whatsapp={storeData.whatsapp}
+            rating={storeData.rating}
+            totalReviews={storeData.totalReviews}
+            totalSales={storeData.totalSales}
+            initialFollowers={storeData._count.followers}
+            totalProducts={storeData._count.products}
+            socialLinks={storeData.socialLinks}
           />
         </div>
 
-        {store.description && (
+        {storeData.description && (
           <div className="bg-white rounded-3xl shadow-sm border border-gray-100 px-6 py-5 mb-4">
             <h2 className="text-sm font-bold text-gray-900 mb-2">Sobre la tienda</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">{store.description}</p>
+            <p className="text-sm text-gray-600 leading-relaxed">{storeData.description}</p>
           </div>
         )}
 
