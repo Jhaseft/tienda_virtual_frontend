@@ -11,8 +11,12 @@ import SettingsOwnerSection from "@/components/admin/settings/SettingsOwnerSecti
 import SettingsStoreSection from "@/components/admin/settings/SettingsStoreSection";
 import SettingsPaymentSection from "@/components/admin/settings/SettingsPaymentSection";
 import SettingsActionsSection from "@/components/admin/settings/SettingsActionsSection";
+import SettingsSocialSection from "@/components/admin/settings/SettingsSocialSection";
 import {
+  addSocialLink,
+  deleteSocialLink,
   getStoreSettings,
+  updateSocialLink,
   updateStorePaymentMethod,
   updateStoreSettings,
   uploadStoreImage,
@@ -28,6 +32,7 @@ export default function SettingsPage() {
   const sessionInvalid = status !== "loading" && !token;
 
   const [settings, setSettings] = useState<StoreSettings | null>(null);
+  const [socialLinks, setSocialLinks] = useState<StoreSettings["socialLinks"]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +66,7 @@ export default function SettingsPage() {
     setAddressVal(store.address ?? "");
     setCityVal(store.city ?? "");
     setNotificationsVal(store.owner.notificationsEnabled);
+    setSocialLinks(store.socialLinks ?? []);
     const pm = store.paymentMethods.find((m) => m.type === "QR") ?? store.paymentMethods[0];
     if (pm) setPayment({ id: pm.id, type: pm.type, bankName: pm.bankName ?? "", accountHolder: pm.accountHolder ?? "", accountNumber: pm.accountNumber ?? "", qrImageUrl: pm.qrImageUrl ?? "", qrImagePublicId: pm.qrImagePublicId ?? "" });
   }
@@ -118,6 +124,42 @@ export default function SettingsPage() {
     } finally { e.target.value = ""; }
   }
 
+  async function handleAddSocialLink(network: import("@/types/admin").SocialNetwork, url: string) {
+    if (!token) return;
+    setError(null); setSuccess(null);
+    try {
+      const link = await addSocialLink({ network, url }, { token });
+      setSocialLinks((prev) => [...prev, link]);
+      setSuccess("Red social agregada.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo agregar la red social.");
+    }
+  }
+
+  async function handleUpdateSocialLink(id: string, network: import("@/types/admin").SocialNetwork, url: string) {
+    if (!token) return;
+    setError(null); setSuccess(null);
+    try {
+      const updated = await updateSocialLink(id, { network, url }, { token });
+      setSocialLinks((prev) => prev.map((l) => (l.id === id ? updated : l)));
+      setSuccess("Red social actualizada.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo actualizar la red social.");
+    }
+  }
+
+  async function handleDeleteSocialLink(id: string) {
+    if (!token) return;
+    setError(null); setSuccess(null);
+    try {
+      await deleteSocialLink(id, { token });
+      setSocialLinks((prev) => prev.filter((l) => l.id !== id));
+      setSuccess("Red social eliminada.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo eliminar la red social.");
+    }
+  }
+
   async function handleUploadQr(e: ChangeEvent<HTMLInputElement>) {
     if (!token || !e.target.files?.[0]) return;
     setError(null); setSuccess(null);
@@ -172,6 +214,14 @@ export default function SettingsPage() {
             onSave={savePayment}
             onPaymentChange={setPayment}
             onUploadQr={handleUploadQr}
+          />
+
+          <SettingsSocialSection
+            links={socialLinks}
+            isSaving={isSaving}
+            onAdd={handleAddSocialLink}
+            onUpdate={handleUpdateSocialLink}
+            onDelete={handleDeleteSocialLink}
           />
 
           <SettingsActionsSection

@@ -48,6 +48,7 @@ export default async function StoreBySubdomainPage({ params }: Props) {
             totalSales={store.totalSales}
             initialFollowers={store._count.followers}
             totalProducts={store._count.products}
+            socialLinks={store.socialLinks}
           />
         </div>
 

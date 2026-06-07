@@ -90,6 +90,21 @@ export interface StorePaymentMethod {
   qrImagePublicId?: string | null;
 }
 
+export type SocialNetwork =
+  | "FACEBOOK"
+  | "INSTAGRAM"
+  | "TIKTOK"
+  | "YOUTUBE"
+  | "TWITTER"
+  | "WHATSAPP"
+  | "WEBSITE"
+
+export interface StoreSocialLink {
+  id: string;
+  network: SocialNetwork;
+  url: string;
+}
+
 export interface StoreSettings {
   id: string;
   subdomain?: string | null;
@@ -111,6 +126,7 @@ export interface StoreSettings {
     notificationsEnabled: boolean;
   };
   paymentMethods: StorePaymentMethod[];
+  socialLinks: StoreSocialLink[];
 }
 
 export interface UpdateStoreSettingsPayload {

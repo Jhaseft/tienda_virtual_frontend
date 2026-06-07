@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import type { SocialNetwork } from "@/types/admin"
 import StoreActions from "./StoreActions"
+import StoreSocialLinks from "./StoreSocialLinks"
 
 interface Props {
   storeId: string
@@ -11,11 +13,12 @@ interface Props {
   totalSales: number
   initialFollowers: number
   totalProducts: number
+  socialLinks: { id: string; network: SocialNetwork; url: string }[]
 }
 
 export default function StoreStats({
   storeId, whatsapp, rating, totalReviews,
-  totalSales, initialFollowers, totalProducts,
+  totalSales, initialFollowers, totalProducts, socialLinks,
 }: Props) {
   const [followers, setFollowers] = useState(initialFollowers)
 
@@ -33,6 +36,8 @@ export default function StoreStats({
       </div>
 
       <StoreActions storeId={storeId} whatsapp={whatsapp} onFollowChange={handleFollowChange} />
+
+      <StoreSocialLinks links={socialLinks} />
     </div>
   )
 }
