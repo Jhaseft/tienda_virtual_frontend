@@ -183,6 +183,16 @@ export async function deleteSocialLink(
   await apiRequest(`/stores/me/social-links/${id}`, { method: "DELETE", token });
 }
 
+export async function updateStoreSubdomain(
+  subdomain: string,
+  { token }: ApiParams
+): Promise<{ id: string; subdomain: string }> {
+  return apiRequest<{ id: string; subdomain: string }>("/stores/me/subdomain", {
+    method: "PATCH",
+    token,
+    body: { subdomain },
+  });
+}
 export async function updateStorePaymentMethod(
   payload: UpdatePaymentMethodPayload,
   { token }: ApiParams

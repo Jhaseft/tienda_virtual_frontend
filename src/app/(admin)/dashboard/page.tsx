@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import AdminShell from "@/components/admin/home/AdminShell"
 import SalesTodayCard from "@/components/admin/home/SalesTodayCard"
 import QuickActions from "@/components/admin/home/QuickActions"
+import SubdomainCard from "@/components/admin/home/SubdomainCard"
 import MetricCard from "@/components/admin/home/MetricCard"
 import LoadingState from "@/components/admin/home/LoadingState"
 import DashboardHeader from "@/components/admin/home/DashboardHeader"
@@ -50,7 +51,7 @@ export default function DashboardPage() {
           ownerName={stats?.ownerName ?? null}
           storeName={stats?.storeName ?? null}
         />
-
+           <SubdomainCard />
         {subscription && <TrialBanner subscription={subscription} />}
 
 
@@ -58,7 +59,8 @@ export default function DashboardPage() {
           total={stats?.salesToday.total ?? 0}
           count={stats?.salesToday.count ?? 0}
         />
-
+       
+        
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <MetricCard
             title="Productos"
@@ -98,7 +100,12 @@ export default function DashboardPage() {
           />
         </div>
 
-        <QuickActions storeId={stats?.storeId ?? ""} />
+        <QuickActions
+          storeId={stats?.storeId ?? ""}
+          storeSubdomain={stats?.storeSubdomain ?? null}
+        />
+
+        
 
         <div className="-mt-4">
           <PageFooterHint message="Gestiona tu negocio de manera eficiente" />
