@@ -6,9 +6,11 @@ import { ArrowLeft } from "lucide-react";
 interface Props {
   label?: string;
   href?: string;
+  labelSize?: string;
+  hideOnMobile?: boolean;
 }
 
-export default function BackButton({ label = "Volver", href }: Props) {
+export default function BackButton({ label = "Volver", href, labelSize = "text-xl", hideOnMobile = false }: Props) {
   const router = useRouter();
 
   function handleClick() {
@@ -17,7 +19,7 @@ export default function BackButton({ label = "Volver", href }: Props) {
   }
 
   return (
-    <div className="hidden md:flex items-center gap-3 mb-6">
+    <div className={`${hideOnMobile ? 'hidden md:flex' : 'flex'} items-center gap-3 mb-6`}>
       <button
         type="button"
         onClick={handleClick}
@@ -25,7 +27,7 @@ export default function BackButton({ label = "Volver", href }: Props) {
       >
         <ArrowLeft size={16} strokeWidth={2} />
       </button>
-      <h1 className="text-xl font-bold text-gray-900">{label}</h1>
+      <h1 className={`${labelSize} font-bold text-gray-900`}>{label}</h1>
     </div>
   );
 }

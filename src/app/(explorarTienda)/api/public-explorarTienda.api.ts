@@ -40,6 +40,29 @@ export async function fetchStorePaymentMethods(id: string): Promise<PaymentMetho
     return res.json()
 }
 
+export type TransportType = 'BUS' | 'AVION' | 'MOTO' | 'A_PIE' | 'PROPIO'
+
+export interface ShippingZoneOption {
+  id: string
+  city: string
+  transportType: TransportType
+  shippingCost: number
+  minHours: number
+  maxHours: number
+}
+
+export interface ShippingZoneGroup {
+  city: string
+  options: ShippingZoneOption[]
+}
+
+// OBTENER ZONAS DE ENVÍO DE UNA TIENDA
+export async function fetchStoreShippingZones(id: string): Promise<ShippingZoneGroup[]> {
+  const res = await fetch(`${BASE}/tiendas/${id}/zonas-envio`, { cache: 'no-store' })
+  if (!res.ok) return []
+  return res.json()
+}
+
 // VERIFICAR SI EL USUARIO SIGUE UNA TIENDA
 export async function checkIsFollowing(id: string, token: string): Promise<boolean> {
     const res = await fetch(`${BASE}/tiendas/${id}/seguir`, {

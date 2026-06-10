@@ -8,10 +8,13 @@ import OrderDetailRight from '@/components/explorarTienda/orders/OrderDetailRigh
 
 interface Props {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ nuevo?: string }>
 }
 
-export default async function OrderDetailPage({ params }: Props) {
+export default async function OrderDetailPage({ params, searchParams }: Props) {
   const { id } = await params
+  const { nuevo } = await searchParams
+  const isNew = nuevo === '1'
   const session = await getServerSession(authOptions)
 
   if (!session?.user?.backendToken) {
@@ -22,9 +25,20 @@ export default async function OrderDetailPage({ params }: Props) {
   if (!order) notFound()
 
   return (
-    <main className="min-h-screen bg-gray-50 pt-4 md:pt-20">
-      <div className="max-w-5xl mx-auto px-6 lg:px-12 py-8 pb-28 md:pb-12">
-        {/* Navegación de regreso */}
+    <main className="min-h-screen bg-gray-50 pt-1 md:pt-15">
+      <div className="max-w-6xl mx-auto px-2 lg:px-6 py-4 md:py-8 pb-28 md:pb-12">
+        {isNew && (
+          <div className="mb-6 flex items-start gap-3 bg-green-50 border border-green-200 rounded-2xl px-5 py-4">
+            <span className="text-2xl">🎉</span>
+            <div>
+              <p className="font-semibold text-green-800">¡Pedido realizado con éxito!</p>
+              <p className="text-sm text-green-600 mt-0.5">
+                El vendedor revisará tu pedido y comprobante. Te notificaremos cuando lo confirme.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-3 mb-6">
           <Link
             href="/pedidos"
@@ -40,8 +54,7 @@ export default async function OrderDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Grid 2 columnas en desktop */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_340px] gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_480px] gap-6 items-start">
           <OrderDetailLeft order={order} />
           <OrderDetailRight order={order} />
         </div>

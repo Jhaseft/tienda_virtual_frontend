@@ -1,16 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useSyncExternalStore } from "react"
 import { useSession } from "next-auth/react"
-import { checkIsFavorite, addFavorite, removeFavorite, fetchStorePaymentMethods } from "@/app/(explorarTienda)/api/public-explorarTienda.api"
-import type { PaymentMethod } from "@/types/explorar"
-import PaymentModal from "./PaymentModal"
+import { useRouter } from "next/navigation"
+import { checkIsFavorite, addFavorite, removeFavorite } from "@/app/(explorarTienda)/api/public-explorarTienda.api"
+import { addToCart } from "@/app/(explorarTienda)/api/carrito.api"
 import { useStorefront } from "@/contexts/StorefrontContext"
+import { useCart } from "@/contexts/CartContext"
 
 interface Props {
   productId: string
   productName: string
   price: number
+  stock: number
   whatsapp: string | null
   storeName: string
   storeId: string
@@ -19,15 +21,24 @@ interface Props {
 }
 
 export default function ProductActions({
-  productId, productName, price, whatsapp, storeName, storeId, selectedSize, selectedColor,
+  productId, productName, price, stock, whatsapp, storeName, storeId, selectedSize, selectedColor,
 }: Props) {
   const { data: session } = useSession()
   const { isSubdomain } = useStorefront()
+  const { increment } = useCart()
+  const router = useRouter()
   const [favorite, setFavorite] = useState(false)
   const [loadingFav, setLoadingFav] = useState(false)
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
-  const [showPayModal, setShowPayModal] = useState(false)
-  const [loadingPay, setLoadingPay] = useState(false)
+  const [loadingCart, setLoadingCart] = useState(false)
+  const [cartError, setCartError] = useState<string | null>(null)
+
+  const outOfStock = stock === 0
+
+  const cartAdded = useSyncExternalStore(
+    (cb) => { window.addEventListener('storage', cb); return () => window.removeEventListener('storage', cb) },
+    () => { const ids = JSON.parse(localStorage.getItem('cart_added_products') ?? '[]'); return ids.includes(productId) },
+    () => false,
+  )
 
   useEffect(() => {
     if (isSubdomain) return
@@ -57,12 +68,37 @@ export default function ProductActions({
     }
   }
 
-  async function handlePay() {
-    setLoadingPay(true)
-    const methods = await fetchStorePaymentMethods(storeId)
-    setPaymentMethods(methods)
-    setLoadingPay(false)
-    setShowPayModal(true)
+  async function handleAddToCart() {
+    if (!session?.user?.backendToken) return
+    setLoadingCart(true)
+    setCartError(null)
+    try {
+      await addToCart(session.user.backendToken, {
+        productId,
+        storeId,
+        quantity: 1,
+        variant: selectedSize ?? undefined,
+        colorName: selectedColor ?? undefined,
+      })
+      increment()
+      const saved = localStorage.getItem('cart_added_products')
+      const ids: string[] = saved ? JSON.parse(saved) : []
+      if (!ids.includes(productId)) {
+        localStorage.setItem('cart_added_products', JSON.stringify([...ids, productId]))
+        window.dispatchEvent(new Event('storage'))
+      }
+    } catch (e: unknown) {
+      setCartError(e instanceof Error ? e.message : 'No se pudo agregar al carrito')
+    } finally {
+      setLoadingCart(false)
+    }
+  }
+
+  function handleBuyNow() {
+    const params = new URLSearchParams({ direct: '1', storeId, productId })
+    if (selectedSize) params.set('size', selectedSize)
+    if (selectedColor) params.set('color', selectedColor)
+    router.push(`/checkout?${params.toString()}`)
   }
 
   function handleWhatsApp() {
@@ -79,6 +115,12 @@ export default function ProductActions({
   return (
     <div className="flex flex-col gap-3">
 
+      {outOfStock && (
+        <div className="w-full flex items-center justify-center gap-2 bg-red-50 border border-red-100 text-red-500 text-sm font-semibold py-3 rounded-2xl">
+          Sin stock — producto agotado
+        </div>
+      )}
+
       <button
         onClick={handleWhatsApp}
         disabled={!whatsapp}
@@ -88,23 +130,31 @@ export default function ProductActions({
         Consultar por WhatsApp
       </button>
 
-      {showPayModal && (
-        <PaymentModal
-          methods={paymentMethods}
-          whatsapp={whatsapp}
-          productName={productName}
-          onClose={() => setShowPayModal(false)}
-        />
-      )}
-
       <button
-        onClick={handlePay}
-        disabled={loadingPay}
+        onClick={handleBuyNow}
+        disabled={outOfStock}
         className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-sm font-semibold py-4 rounded-2xl transition-colors shadow-sm shadow-emerald-200"
       >
         <CreditCardIcon />
-        {loadingPay ? "Cargando..." : "Pagar"}
+        ¡Cómpralo ahora!
       </button>
+
+      <button
+        onClick={handleAddToCart}
+        disabled={loadingCart || cartAdded || !session || outOfStock}
+        className={`w-full flex items-center justify-center gap-2 text-sm font-semibold py-4 rounded-2xl border-2 transition-all disabled:opacity-60 ${
+          cartAdded
+            ? "border-violet-400 bg-violet-50 text-violet-600 cursor-default"
+            : "border-gray-200 bg-white text-gray-700 hover:border-violet-300 hover:text-violet-600"
+        }`}
+      >
+        <CartIcon />
+        {cartAdded ? "¡Agregado al carrito!" : loadingCart ? "Agregando..." : "Agregar al carrito"}
+      </button>
+
+      {cartError && (
+        <p className="text-xs text-center text-red-500 font-medium">{cartError}</p>
+      )}
 
       <button
         onClick={handleFavorite}
@@ -136,6 +186,16 @@ function WhatsAppIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="white" aria-hidden="true">
       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
       <path d="M12 0C5.373 0 0 5.373 0 12c0 2.138.564 4.14 1.541 5.874L.057 23.428a.5.5 0 0 0 .606.614l5.701-1.493A11.94 11.94 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.797 9.797 0 0 1-5.015-1.377l-.36-.214-3.733.977.999-3.635-.235-.374A9.778 9.778 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z" />
+    </svg>
+  )
+}
+
+function CartIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
     </svg>
   )
 }

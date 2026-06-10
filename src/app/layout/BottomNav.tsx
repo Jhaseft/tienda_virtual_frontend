@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { Suspense } from "react"
 import { useSession } from "next-auth/react"
 import SearchBar from "../../components/explorarTienda/home/SearchBar"
+import { useCart } from "@/contexts/CartContext"
 
 const NAV_ITEMS = [
   { href: "/",          label: "Inicio",      icon: HomeIcon },
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
 export default function BottomNav() {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const { count: cartCount } = useCart()
 
   return (
     <>
@@ -66,6 +68,18 @@ export default function BottomNav() {
               title="Favoritos"
             >
               <HeartIcon active={false} />
+            </Link>
+            <Link
+              href="/carrito"
+              className="relative w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              title="Carrito"
+            >
+              <CartIcon active={false} />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-violet-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {cartCount > 9 ? "9+" : cartCount}
+                </span>
+              )}
             </Link>
             <Link
               href="/pedidos"
@@ -122,6 +136,24 @@ export default function BottomNav() {
           })}
         </div>
       </nav>
+
+      {/* Botón flotante carrito — solo móvil */}
+      <Link
+        href="/carrito"
+        className="md:hidden fixed bottom-20 right-4 z-50 w-12 h-12 bg-violet-600 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform text-white"
+        title="Carrito"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="white" strokeWidth="1.5" fill="white" fillOpacity="0.2" />
+          <path d="M3 6h18" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M16 10a4 4 0 0 1-8 0" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        {cartCount > 0 && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+            {cartCount > 9 ? "9+" : cartCount}
+          </span>
+        )}
+      </Link>
     </>
   )
 }
@@ -170,6 +202,16 @@ function BagIcon({ active }: { active: boolean }) {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" strokeWidth={active ? 2 : 1.5} fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
       <path d="M8 7V6a4 4 0 0 1 8 0v1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function CartIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" strokeWidth={active ? 2 : 1.5} fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
+      <path d="M3 6h18" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" />
+      <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   )
 }

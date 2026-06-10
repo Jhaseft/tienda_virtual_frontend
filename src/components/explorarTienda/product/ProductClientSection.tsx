@@ -10,6 +10,7 @@ interface Props {
   productId: string
   productName: string
   price: number
+  stock: number
   whatsapp: string | null
   storeName: string
   storeId: string
@@ -18,7 +19,7 @@ interface Props {
 }
 
 export default function ProductClientSection({
-  productId, productName, price, whatsapp, storeName, storeId, sizes, colors,
+  productId, productName, price, stock, whatsapp, storeName, storeId, sizes, colors,
 }: Props) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
@@ -37,6 +38,7 @@ export default function ProductClientSection({
         productId={productId}
         productName={productName}
         price={price}
+        stock={stock}
         whatsapp={whatsapp}
         storeName={storeName}
         storeId={storeId}

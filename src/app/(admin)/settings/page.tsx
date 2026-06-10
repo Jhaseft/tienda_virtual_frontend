@@ -12,19 +12,29 @@ import SettingsStoreSection from "@/components/admin/settings/SettingsStoreSecti
 import SettingsPaymentSection from "@/components/admin/settings/SettingsPaymentSection";
 import SettingsActionsSection from "@/components/admin/settings/SettingsActionsSection";
 import SettingsSocialSection from "@/components/admin/settings/SettingsSocialSection";
+import SettingsShippingSection from "@/components/admin/settings/SettingsShippingSection";
 import {
   addSocialLink,
   deleteSocialLink,
   getStoreSettings,
   updateSocialLink,
   updateStorePaymentMethod,
+  createPaymentMethod,
+  deletePaymentMethod,
   updateStoreSettings,
   uploadStoreImage,
 } from "@/lib/api/admin";
+import {
+  getShippingZones,
+  createShippingZone,
+  updateShippingZone,
+  deleteShippingZone,
+} from "@/lib/api/shippingZones";
 import { ApiError } from "@/lib/api/client";
-import type { StoreSettings, UpdatePaymentMethodPayload } from "@/types/admin";
+import type { StoreSettings, StorePaymentMethod, UpdatePaymentMethodPayload } from "@/types/admin";
+import type { ShippingZone, CreateShippingZonePayload } from "@/types/shippingZone";
 
-type EditSection = "name" | "whatsapp" | "description" | "address" | "payment" | null;
+type EditSection = "name" | "whatsapp" | "description" | "address" | null;
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
@@ -33,6 +43,8 @@ export default function SettingsPage() {
 
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [socialLinks, setSocialLinks] = useState<StoreSettings["socialLinks"]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<StorePaymentMethod[]>([]);
+  const [zones, setZones] = useState<ShippingZone[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,14 +57,18 @@ export default function SettingsPage() {
   const [addressVal, setAddressVal] = useState("");
   const [cityVal, setCityVal] = useState("");
   const [notificationsVal, setNotificationsVal] = useState(true);
-  const [payment, setPayment] = useState<UpdatePaymentMethodPayload>({
-    type: "QR", bankName: "", accountHolder: "", accountNumber: "", qrImageUrl: "", qrImagePublicId: "",
-  });
 
   useEffect(() => {
     if (status === "loading" || !token) return;
-    getStoreSettings({ token })
-      .then((store) => { setSettings(store); syncFromStore(store); })
+    Promise.all([
+      getStoreSettings({ token }),
+      getShippingZones({ token }),
+    ])
+      .then(([store, fetchedZones]) => {
+        setSettings(store);
+        syncFromStore(store);
+        setZones(fetchedZones);
+      })
       .catch((err: unknown) => {
         setError(err instanceof ApiError ? err.message : "No se pudo cargar la configuración.");
       })
@@ -67,8 +83,7 @@ export default function SettingsPage() {
     setCityVal(store.city ?? "");
     setNotificationsVal(store.owner.notificationsEnabled);
     setSocialLinks(store.socialLinks ?? []);
-    const pm = store.paymentMethods.find((m) => m.type === "QR") ?? store.paymentMethods[0];
-    if (pm) setPayment({ id: pm.id, type: pm.type, bankName: pm.bankName ?? "", accountHolder: pm.accountHolder ?? "", accountNumber: pm.accountNumber ?? "", qrImageUrl: pm.qrImageUrl ?? "", qrImagePublicId: pm.qrImagePublicId ?? "" });
+    setPaymentMethods(store.paymentMethods ?? []);
   }
 
   function openEdit(section: EditSection) { setEditSection(section); setError(null); setSuccess(null); }
@@ -87,19 +102,6 @@ export default function SettingsPage() {
       setSuccess("Guardado correctamente."); setEditSection(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo guardar.");
-    } finally { setIsSaving(false); }
-  }
-
-  async function savePayment() {
-    if (!token) return;
-    setIsSaving(true); setError(null); setSuccess(null);
-    try {
-      await updateStorePaymentMethod(payment, { token });
-      const refreshed = await getStoreSettings({ token });
-      setSettings(refreshed); syncFromStore(refreshed);
-      setSuccess("Método de pago actualizado."); setEditSection(null);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo guardar el método de pago.");
     } finally { setIsSaving(false); }
   }
 
@@ -124,6 +126,55 @@ export default function SettingsPage() {
     } finally { e.target.value = ""; }
   }
 
+  // — Métodos de pago —
+  async function handleCreatePayment(dto: UpdatePaymentMethodPayload) {
+    if (!token) return;
+    setIsSaving(true); setError(null);
+    try {
+      await createPaymentMethod(dto, { token });
+      const refreshed = await getStoreSettings({ token });
+      setPaymentMethods(refreshed.paymentMethods ?? []);
+      setSuccess("Método de pago agregado.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo agregar el método de pago.");
+    } finally { setIsSaving(false); }
+  }
+
+  async function handleUpdatePayment(id: string, dto: UpdatePaymentMethodPayload) {
+    if (!token) return;
+    setIsSaving(true); setError(null);
+    try {
+      const updated = await updateStorePaymentMethod({ ...dto, id }, { token });
+      setPaymentMethods((prev) => prev.map((m) => (m.id === id ? updated : m)));
+      setSuccess("Método de pago actualizado.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo actualizar el método de pago.");
+    } finally { setIsSaving(false); }
+  }
+
+  async function handleDeletePayment(id: string) {
+    if (!token) return;
+    try {
+      await deletePaymentMethod(id, { token });
+      setPaymentMethods((prev) => prev.filter((m) => m.id !== id));
+      setSuccess("Método de pago eliminado.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo eliminar el método de pago.");
+    }
+  }
+
+  async function handleUploadQr(e: ChangeEvent<HTMLInputElement>, onChange: (url: string, id: string) => void) {
+    if (!token || !e.target.files?.[0]) return;
+    setError(null);
+    try {
+      const uploaded = await uploadStoreImage(e.target.files[0], "qr", { token });
+      onChange(uploaded.url, uploaded.publicId);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo subir el QR.");
+    } finally { e.target.value = ""; }
+  }
+
+  // — Redes sociales —
   async function handleAddSocialLink(network: import("@/types/admin").SocialNetwork, url: string) {
     if (!token) return;
     setError(null); setSuccess(null);
@@ -160,19 +211,40 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleUploadQr(e: ChangeEvent<HTMLInputElement>) {
-    if (!token || !e.target.files?.[0]) return;
-    setError(null); setSuccess(null);
+  // — Zonas de envío —
+  async function handleCreateZone(dto: CreateShippingZonePayload) {
+    if (!token) return;
+    setIsSaving(true); setError(null);
     try {
-      const uploaded = await uploadStoreImage(e.target.files[0], "qr", { token });
-      setPayment((p) => ({ ...p, qrImageUrl: uploaded.url, qrImagePublicId: uploaded.publicId }));
-      setSuccess("QR cargado. Presiona Guardar para confirmar.");
+      const created = await createShippingZone(dto, { token });
+      setZones((prev) => [...prev, created]);
+      setSuccess("Zona de envío agregada.");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo subir el QR.");
-    } finally { e.target.value = ""; }
+      setError(err instanceof ApiError ? err.message : "No se pudo agregar la zona.");
+    } finally { setIsSaving(false); }
   }
 
-  const preferredPM = settings?.paymentMethods.find((m) => m.type === "QR") ?? settings?.paymentMethods[0];
+  async function handleUpdateZone(id: string, dto: Partial<CreateShippingZonePayload & { isActive: boolean }>) {
+    if (!token) return;
+    setIsSaving(true); setError(null);
+    try {
+      const updated = await updateShippingZone(id, dto, { token });
+      setZones((prev) => prev.map((z) => (z.id === id ? updated : z)));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo actualizar la zona.");
+    } finally { setIsSaving(false); }
+  }
+
+  async function handleDeleteZone(id: string) {
+    if (!token) return;
+    try {
+      await deleteShippingZone(id, { token });
+      setZones((prev) => prev.filter((z) => z.id !== id));
+      setSuccess("Zona de envío eliminada.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se pudo eliminar la zona.");
+    }
+  }
 
   return (
     <AdminShell title="Mi tienda" subtitle="Configura tu tienda" rightSlot={<AdminMenuDropdown />}>
@@ -205,15 +277,20 @@ export default function SettingsPage() {
           />
 
           <SettingsPaymentSection
-            preferredPM={preferredPM}
-            payment={payment}
-            isOpen={editSection === "payment"}
+            methods={paymentMethods}
             isSaving={isSaving}
-            onOpen={() => openEdit("payment")}
-            onCancel={cancelEdit}
-            onSave={savePayment}
-            onPaymentChange={setPayment}
+            onCreate={handleCreatePayment}
+            onUpdate={handleUpdatePayment}
+            onDelete={handleDeletePayment}
             onUploadQr={handleUploadQr}
+          />
+
+          <SettingsShippingSection
+            zones={zones}
+            isSaving={isSaving}
+            onCreate={handleCreateZone}
+            onUpdate={handleUpdateZone}
+            onDelete={handleDeleteZone}
           />
 
           <SettingsSocialSection

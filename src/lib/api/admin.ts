@@ -193,14 +193,35 @@ export async function updateStoreSubdomain(
     body: { subdomain },
   });
 }
-export async function updateStorePaymentMethod(
+export async function createPaymentMethod(
   payload: UpdatePaymentMethodPayload,
   { token }: ApiParams
-) {
+): Promise<import("@/types/admin").StorePaymentMethod> {
   return apiRequest("/stores/me/payment-method", {
     method: "PATCH",
     token,
     body: payload,
+  });
+}
+
+export async function updateStorePaymentMethod(
+  payload: UpdatePaymentMethodPayload,
+  { token }: ApiParams
+): Promise<import("@/types/admin").StorePaymentMethod> {
+  return apiRequest("/stores/me/payment-method", {
+    method: "PATCH",
+    token,
+    body: payload,
+  });
+}
+
+export async function deletePaymentMethod(
+  id: string,
+  { token }: ApiParams
+): Promise<void> {
+  return apiRequest(`/stores/me/payment-method/${id}`, {
+    method: "DELETE",
+    token,
   });
 }
 
@@ -351,7 +372,7 @@ type BackendOrder = Omit<AdminOrder, "createdAt" | "updatedAt" | "items"> & {
     unitPrice: number;
     size?: string | null;
     colorName?: string | null;
-    product: { id: string; name: string };
+    product: { id: string; name: string; photos?: { url: string }[] };
   }>;
 };
 
@@ -363,6 +384,9 @@ type BackendInventoryItem = Omit<InventoryItem, "imageUrl"> & {
 function mapOrder(order: BackendOrder): AdminOrder {
   return {
     ...order,
+    pickupMethod: order.pickupMethod ?? null,
+    address: order.address ?? null,
+    shippingZone: order.shippingZone ?? null,
     items: order.items.map((item) => ({
       id: item.id,
       productId: item.product.id,
@@ -371,6 +395,7 @@ function mapOrder(order: BackendOrder): AdminOrder {
       unitPrice: item.unitPrice,
       size: item.size,
       colorName: item.colorName,
+      photoUrl: item.product.photos?.[0]?.url ?? null,
     })),
   };
 }

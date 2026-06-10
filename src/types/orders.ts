@@ -52,7 +52,22 @@ export interface OrderDetail {
   total: number
   voucherUrl: string | null
   whatsappThreadUrl: string | null
+  pickupMethod: 'WHATSAPP' | 'STORE_PICKUP' | null
   notes: string | null
+  address: {
+    fullName: string
+    street: string
+    city: string
+    state: string
+    phone: string
+  } | null
+  shippingZone: {
+    city: string
+    transportType: string
+    minHours: number
+    maxHours: number
+    shippingCost: number
+  } | null
   createdAt: string
   updatedAt: string
   store: {

@@ -14,6 +14,7 @@ export interface AdminOrderItem {
   unitPrice: number;
   size?: string | null;
   colorName?: string | null;
+  photoUrl?: string | null;
 }
 
 export interface AdminOrder {
@@ -28,6 +29,22 @@ export interface AdminOrder {
   createdAt: string;
   updatedAt: string;
   paymentMethod: string;
+  pickupMethod: 'WHATSAPP' | 'STORE_PICKUP' | null;
+  voucherUrl?: string | null;
+  address: {
+    fullName: string;
+    street: string;
+    city: string;
+    state: string;
+    phone: string;
+  } | null;
+  shippingZone: {
+    city: string;
+    transportType: string;
+    minHours: number;
+    maxHours: number;
+    shippingCost: number;
+  } | null;
   client: {
     id: string;
     firstName?: string | null;
@@ -88,6 +105,7 @@ export interface StorePaymentMethod {
   accountNumber?: string | null;
   qrImageUrl?: string | null;
   qrImagePublicId?: string | null;
+  phoneNumber?: string | null;
 }
 
 export type SocialNetwork =
@@ -148,6 +166,7 @@ export interface UpdatePaymentMethodPayload {
   accountNumber?: string;
   qrImageUrl?: string;
   qrImagePublicId?: string;
+  phoneNumber?: string;
 }
 
 export interface PaginatedResponse<T> {

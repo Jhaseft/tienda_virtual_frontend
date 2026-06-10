@@ -33,7 +33,7 @@ export interface SearchResults {
   limit: number
 }
 
-export type PaymentType = "QR" | "YAPE" | "TIGO_MONEY" | "EFECTIVO" | "TRANSFERENCIA"
+export type PaymentType = "QR" | "YAPE" | "TIGO_MONEY" | "EFECTIVO" | "TRANSFERENCIA" | "WHATSAPP"
 
 export interface PaymentMethod {
   id: string

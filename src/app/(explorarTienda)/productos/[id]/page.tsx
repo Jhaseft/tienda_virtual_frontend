@@ -54,12 +54,13 @@ export default async function ProductDetailPage({ params }: Props) {
               <span className="text-3xl font-bold text-violet-600">
                 Bs {product.price.toFixed(2)}
               </span>
-              <span className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full ${product.isAvailable
-                  ? "bg-green-50 text-green-600"
-                  : "bg-red-50 text-red-500"
+              <span className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full ${
+                  product.isAvailable && product.stock > 0
+                    ? "bg-green-50 text-green-600"
+                    : "bg-red-50 text-red-500"
                 }`}>
                 <span className="text-[8px]">●</span>
-                {product.isAvailable ? "Disponible" : "Agotado"}
+                {product.isAvailable && product.stock > 0 ? "Disponible" : "Sin stock"}
               </span>
             </div>
 
@@ -100,6 +101,7 @@ export default async function ProductDetailPage({ params }: Props) {
               productId={product.id}
               productName={product.name}
               price={product.price}
+              stock={product.stock}
               whatsapp={product.store.whatsapp}
               storeName={product.store.name}
               storeId={product.store.id}
