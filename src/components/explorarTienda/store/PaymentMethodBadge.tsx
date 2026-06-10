@@ -10,6 +10,7 @@ const CONFIG: Record<PaymentType, { label: string; bg: string; color: string }> 
   TIGO_MONEY:   { label: "Tigo Money",  bg: "bg-red-50",    color: "text-red-600" },
   EFECTIVO:     { label: "Efectivo",    bg: "bg-green-50",  color: "text-green-600" },
   TRANSFERENCIA:{ label: "Transferencia",bg: "bg-orange-50",color: "text-orange-600" },
+  WHATSAPP:     { label: "WhatsApp",     bg: "bg-green-50",  color: "text-green-600" },
 }
 
 export default function PaymentMethodBadge({ type }: Props) {

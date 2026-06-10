@@ -22,7 +22,7 @@ export default async function StoreProductsPage({ params, searchParams }: Props)
     fetchStoreProducts(id, currentPage, LIMIT, q),
   ])
 
-  if (!store) notFound()
+  if (!store || store === 'unavailable') notFound()
 
   const { data: products, total, totalPages } = productsRes
 

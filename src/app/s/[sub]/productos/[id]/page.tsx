@@ -100,6 +100,7 @@ export default async function StorefrontProductDetailPage({ params }: Props) {
               productId={product.id}
               productName={product.name}
               price={product.price}
+              stock={product.stock}
               whatsapp={product.store.whatsapp}
               storeName={product.store.name}
               storeId={product.store.id}

@@ -29,7 +29,7 @@ export default async function StorefrontProductsPage({ params, searchParams }: P
     fetchStoreProducts(storeId, currentPage, LIMIT, q),
   ])
 
-  if (!store) notFound()
+  if (!store || store === 'unavailable') notFound()
 
   const { data: products, total, totalPages } = productsRes
 

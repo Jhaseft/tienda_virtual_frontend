@@ -36,6 +36,12 @@ const PAYMENT_CONFIG: Record<PaymentType, { label: string; icon: React.ReactNode
     color: "text-sky-700",
     bg: "bg-sky-50 border-sky-100",
   },
+  WHATSAPP: {
+    label: "Coordinar por WhatsApp",
+    icon: <BankIcon />,
+    color: "text-green-700",
+    bg: "bg-green-50 border-green-100",
+  },
 }
 
 interface Props {
