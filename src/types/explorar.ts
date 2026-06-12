@@ -62,6 +62,7 @@ export interface StoreDetail {
     products: number
   }
   socialLinks: { id: string; network: import("@/types/admin").SocialNetwork; url: string }[]
+  hasChat: boolean
 }
 
 export interface StoreProduct {

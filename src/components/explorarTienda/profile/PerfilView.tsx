@@ -91,10 +91,9 @@ export default function PerfilView({ user }: Props) {
         </div>
       ))}
 
-      {/* Crear / Ver tienda */}
       {user.store?.id ? (
-        <a
-          href="/products"
+        <Link
+          href="/dashboard"
           className="w-full flex items-center gap-4 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-700 hover:to-violet-600 text-white rounded-2xl px-5 py-4 shadow-lg shadow-violet-200 transition-all active:scale-[0.98]"
         >
           <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
@@ -107,7 +106,7 @@ export default function PerfilView({ user }: Props) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="opacity-70">
             <path d="M9 18l6-6-6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </a>
+        </Link>
       ) : (
         <button
           onClick={() => setShowCreateStore(true)}

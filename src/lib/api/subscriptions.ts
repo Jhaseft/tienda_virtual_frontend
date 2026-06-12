@@ -27,6 +27,7 @@ export interface MySubscription {
   canAddPaymentMethods: boolean;
   hasAiAgent: boolean;
   hasAdvancedPayments: boolean;
+  hasChat: boolean;
   plan: PlanDetail | null;
 }
 
@@ -41,6 +42,8 @@ export interface Plan {
   canAddPaymentMethods: boolean;
   hasAiAgent: boolean;
   hasAdvancedPayments: boolean;
+  hasChat: boolean;
+  priceOferta: number | null;
   sortOrder: number;
 }
 

@@ -11,6 +11,7 @@ import StoreStats from "@/components/explorarTienda/store/StoreStats"
 import PaymentMethodsRow from "@/components/explorarTienda/store/PaymentMethodsRow"
 import StoreTabs from "@/components/explorarTienda/store/StoreTabs"
 import StoreUnavailable from "@/components/explorarTienda/store/StoreUnavailable"
+import ChatStoreButton from "@/components/explorarTienda/store/ChatStoreButton"
 
 interface Props {
   params: Promise<{ id: string }>
@@ -50,7 +51,10 @@ export default async function StoreDetailPage({ params }: Props) {
             <div className="flex-1 min-w-0">
               <StoreHeader store={store} />
             </div>
-            <ShareButton storeName={storeData.name} />
+            <div className="flex items-center gap-2">
+              {storeData.hasChat && <ChatStoreButton storeId={storeData.id} storeName={storeData.name} storeLogoUrl={storeData.logoUrl} />}
+              <ShareButton storeName={storeData.name} />
+            </div>
           </div>
 
           <StoreStats

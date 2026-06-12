@@ -14,6 +14,8 @@ interface Props {
   children: ReactNode;
   rightSlot?: ReactNode;
   hideHeader?: boolean;
+  hideDesktopHeader?: boolean;
+  noPadding?: boolean;
 }
 
 const PAGE_META: Record<string, { icon: ReactNode; color: string; bg: string }> = {
@@ -24,14 +26,13 @@ const PAGE_META: Record<string, { icon: ReactNode; color: string; bg: string }> 
   "/settings":  { color: "text-rose-600",   bg: "bg-rose-50",    icon: <Store size={20} />       },
 };
 
-export default function AdminShell({ title, subtitle, children, rightSlot, hideHeader }: Props) {
+export default function AdminShell({ title, subtitle, children, rightSlot, hideHeader, hideDesktopHeader, noPadding }: Props) {
   const pathname = usePathname();
   const base = "/" + (pathname.split("/")[1] ?? "");
   const meta = PAGE_META[base] ?? PAGE_META["/orders"];
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Top bar fixed — solo desktop */}
       <div className="hidden md:block">
         <AdminTopBar />
       </div>
@@ -40,15 +41,13 @@ export default function AdminShell({ title, subtitle, children, rightSlot, hideH
         <AdminSidebar />
 
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          {/* Header mobile */}
           {!hideHeader && (
             <div className="md:hidden">
               <AdminHeader title={title} subtitle={subtitle} rightSlot={rightSlot} />
             </div>
           )}
 
-          {/* Sub-header de página en desktop */}
-          {!hideHeader && (
+          {!hideHeader && !hideDesktopHeader && (
             <div className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${meta.bg} ${meta.color}`}>
@@ -65,7 +64,7 @@ export default function AdminShell({ title, subtitle, children, rightSlot, hideH
             </div>
           )}
 
-          <main className="flex-1 overflow-y-auto px-4 py-5 pb-24 md:px-8 md:py-6 md:pb-6">
+          <main className={`flex-1 min-h-0 ${noPadding ? "overflow-hidden flex flex-col" : "overflow-y-auto px-4 py-5 pb-24 md:px-8 md:py-6 md:pb-6"}`}>
             {children}
           </main>
 

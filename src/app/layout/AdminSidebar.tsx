@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingBag, Users, Layers, BarChart2, Store, Home, Package, Crown, Zap } from "lucide-react";
+import { ShoppingBag, Users, Layers, BarChart2, Store, Home, Package, Crown, Zap, MessageCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useSyncExternalStore, useState } from "react";
 import { useSession } from "next-auth/react";
 import ToggleButton from "./ToggleButton";
 import NavItem from "./NavItem";
 import { getMySubscription, type MySubscription } from "@/lib/api/subscriptions";
+import { useChatUnread } from "@/hooks/useChatUnread";
 
 const ITEMS: { href: string; label: string; Icon: LucideIcon }[] = [
   { href: "/dashboard", label: "Inicio",       Icon: Home        },
   { href: "/products",  label: "Productos",    Icon: Package     },
   { href: "/orders",    label: "Pedidos",      Icon: ShoppingBag },
+  { href: "/mensajes",  label: "Mensajes",     Icon: MessageCircle },
   { href: "/customers", label: "Clientes",     Icon: Users       },
   { href: "/inventory", label: "Inventario",   Icon: Layers      },
   { href: "/planes",    label: "Planes",       Icon: Crown       },
@@ -57,13 +59,21 @@ export default function AdminSidebar() {
 
   const isTrial = sub?.status === "TRIAL";
   const daysLeft = sub?.daysLeft ?? 0;
+  const chatUnread = useChatUnread("VENDOR");
 
   return (
     <aside className={`hidden md:flex shrink-0 flex-col bg-linear-to-r from-emerald-50 to-white border-r border-emerald-100 h-full overflow-x-hidden overflow-y-auto transition-all duration-300 ease-in-out ${expanded ? "w-52" : "w-15"}`}>
       <nav className="flex-1 px-2 pb-3 pt-2 flex flex-col gap-0.5">
         {ITEMS.map(({ href, label, Icon }) => (
-          <NavItem key={href} href={href} label={label} Icon={Icon}
-            active={pathname === href || pathname.startsWith(`${href}/`)} expanded={expanded} />
+          <div key={href} className="relative">
+            <NavItem href={href} label={label} Icon={Icon}
+              active={pathname === href || pathname.startsWith(`${href}/`)} expanded={expanded} />
+            {href === "/mensajes" && chatUnread > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-violet-600 text-white text-[10px] font-bold flex items-center justify-center pointer-events-none">
+                {chatUnread > 9 ? "9+" : chatUnread}
+              </span>
+            )}
+          </div>
         ))}
       </nav>
 

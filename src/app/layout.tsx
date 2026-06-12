@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "@/components/providers/SessionProvider"
 import { CartProvider } from "@/contexts/CartContext"
+import { SocketProvider } from "@/contexts/SocketContext"
 import CartHydrator from "@/components/providers/CartHydrator";
 
 const geistSans = Geist({
@@ -31,7 +32,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-          <SessionProvider><CartProvider><CartHydrator />{children}</CartProvider></SessionProvider>
+          <SessionProvider><SocketProvider><CartProvider><CartHydrator />{children}</CartProvider></SocketProvider></SessionProvider>
         </body>
     </html>
   );

@@ -38,7 +38,7 @@ export default function AdminTopBar() {
         <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center shadow">
           <Store size={14} className="text-white" strokeWidth={2} />
         </div>
-        <span className="text-gray-800 font-semibold text-sm hidden lg:block">Shopiva</span>
+        <span className="text-gray-800 font-semibold text-sm hidden lg:block">MiTienda</span>
       </Link>
 
       <TopBarTips />

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import { checkIsFavorite, addFavorite, removeFavorite } from "@/app/(explorarTienda)/api/public-explorarTienda.api"
 import { addToCart } from "@/app/(explorarTienda)/api/carrito.api"
 import { useStorefront } from "@/contexts/StorefrontContext"
-import { useCart } from "@/contexts/CartContext"
 
 interface Props {
   productId: string
@@ -25,7 +24,6 @@ export default function ProductActions({
 }: Props) {
   const { data: session } = useSession()
   const { isSubdomain } = useStorefront()
-  const { increment } = useCart()
   const router = useRouter()
   const [favorite, setFavorite] = useState(false)
   const [loadingFav, setLoadingFav] = useState(false)
@@ -46,6 +44,17 @@ export default function ProductActions({
     checkIsFavorite(productId, session.user.backendToken).then(setFavorite)
   }, [productId, session?.user?.backendToken, isSubdomain])
 
+  useEffect(() => {
+    if (!session?.user?.backendToken) return
+    const pending = localStorage.getItem('pendingAction')
+    if (!pending) return
+    localStorage.removeItem('pendingAction')
+    if (pending === 'buyNow') handleBuyNow()
+    if (pending === 'addToCart') handleAddToCart()
+    if (pending === 'favorite') handleFavorite()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.backendToken])
+
   async function handleFavorite() {
     if (isSubdomain) {
       const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "tiendamas.vip"
@@ -53,7 +62,10 @@ export default function ProductActions({
       window.location.assign(target)
       return
     }
-    if (!session?.user?.backendToken) return
+    if (!session?.user?.backendToken) {
+      redirectToLogin('favorite', window.location.pathname)
+      return
+    }
     setLoadingFav(true)
     try {
       if (favorite) {
@@ -69,7 +81,10 @@ export default function ProductActions({
   }
 
   async function handleAddToCart() {
-    if (!session?.user?.backendToken) return
+    if (!session?.user?.backendToken) {
+      redirectToLogin('addToCart', window.location.pathname)
+      return
+    }
     setLoadingCart(true)
     setCartError(null)
     try {
@@ -80,7 +95,7 @@ export default function ProductActions({
         variant: selectedSize ?? undefined,
         colorName: selectedColor ?? undefined,
       })
-      increment()
+      window.dispatchEvent(new Event('cart:refresh'))
       const saved = localStorage.getItem('cart_added_products')
       const ids: string[] = saved ? JSON.parse(saved) : []
       if (!ids.includes(productId)) {
@@ -94,11 +109,21 @@ export default function ProductActions({
     }
   }
 
+  function redirectToLogin(action: string, callbackUrl: string) {
+    localStorage.setItem('pendingAction', action)
+    router.push(`/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`)
+  }
+
   function handleBuyNow() {
     const params = new URLSearchParams({ direct: '1', storeId, productId })
     if (selectedSize) params.set('size', selectedSize)
     if (selectedColor) params.set('color', selectedColor)
-    router.push(`/checkout?${params.toString()}`)
+    const checkoutUrl = `/checkout?${params.toString()}`
+    if (!session?.user?.backendToken) {
+      redirectToLogin('buyNow', checkoutUrl)
+      return
+    }
+    router.push(checkoutUrl)
   }
 
   function handleWhatsApp() {
@@ -141,7 +166,7 @@ export default function ProductActions({
 
       <button
         onClick={handleAddToCart}
-        disabled={loadingCart || cartAdded || !session || outOfStock}
+        disabled={loadingCart || cartAdded || outOfStock}
         className={`w-full flex items-center justify-center gap-2 text-sm font-semibold py-4 rounded-2xl border-2 transition-all disabled:opacity-60 ${
           cartAdded
             ? "border-violet-400 bg-violet-50 text-violet-600 cursor-default"
@@ -158,7 +183,7 @@ export default function ProductActions({
 
       <button
         onClick={handleFavorite}
-        disabled={loadingFav || (!isSubdomain && !session)}
+        disabled={loadingFav}
         className={`w-full flex items-center justify-center gap-2 text-sm font-semibold py-3.5 rounded-2xl border-2 transition-all disabled:opacity-40 ${
           favorite
             ? "border-pink-400 bg-pink-50 text-pink-600"

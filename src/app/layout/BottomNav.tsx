@@ -2,24 +2,31 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Suspense } from "react"
+import { Suspense, useState } from "react"
 import { useSession } from "next-auth/react"
 import SearchBar from "../../components/explorarTienda/home/SearchBar"
 import { useCart } from "@/contexts/CartContext"
+import { useChatUnread } from "@/hooks/useChatUnread"
 
 const NAV_ITEMS = [
   { href: "/",          label: "Inicio",      icon: HomeIcon },
   { href: "/categorias",label: "Categorías",  icon: GridIcon },
   { href: "/favoritos", label: "Favoritos",   icon: HeartIcon },
   { href: "/pedidos",   label: "Pedidos",     icon: BagIcon },
+  
+]
+
+const MORE_ITEMS = [
+  { href: "/chat", label: "Mensajes", icon: MessageIcon },
   { href: "/perfil",    label: "Perfil",      icon: UserIcon },
 ]
 
 export default function BottomNav() {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const [showMore, setShowMore] = useState(false)
   const { count: cartCount } = useCart()
-
+  const chatUnread = useChatUnread("CLIENT")
   return (
     <>
       <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 shadow-sm">
@@ -63,13 +70,6 @@ export default function BottomNav() {
 
           <div className="flex items-center gap-1 shrink-0">
             <Link
-              href="/favoritos"
-              className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-              title="Favoritos"
-            >
-              <HeartIcon active={false} />
-            </Link>
-            <Link
               href="/carrito"
               className="relative w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
               title="Carrito"
@@ -87,6 +87,18 @@ export default function BottomNav() {
               title="Pedidos"
             >
               <BagIcon active={false} />
+            </Link>
+            <Link
+              href="/chat"
+              className="relative w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              title="Mensajes"
+            >
+              <MessageIcon active={false} />
+              {chatUnread > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-violet-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {chatUnread > 9 ? "9+" : chatUnread}
+                </span>
+              )}
             </Link>
 
             <div className="w-px h-5 bg-gray-200 mx-1" />
@@ -117,7 +129,36 @@ export default function BottomNav() {
         </div>
       </header>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-lg">
+      {showMore && (
+        <div className="md:hidden fixed inset-0 z-40" onClick={() => setShowMore(false)}>
+          <div
+            className="absolute bottom-20 right-3 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-48"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Más opciones</span>
+            </div>
+            {MORE_ITEMS.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href || pathname.startsWith(href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setShowMore(false)}
+                  className={`flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-gray-50 ${active ? "bg-gray-50" : ""}`}
+                >
+                  <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
+                    <Icon active={active} />
+                  </div>
+                  <span className={`text-sm font-semibold ${active ? "text-violet-600" : "text-gray-700"}`}>{label}</span>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-lg ${pathname === "/chat" ? "hidden" : ""}`}>
         <div className="flex items-center justify-around px-2 py-2">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const active = pathname === href || (href !== "/" && pathname.startsWith(href))
@@ -134,19 +175,28 @@ export default function BottomNav() {
               </Link>
             )
           })}
+          <button
+            onClick={() => setShowMore(!showMore)}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors ${
+              showMore ? "text-violet-600" : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            <MoreIcon active={showMore} />
+            <span className="text-[10px] font-medium">Más</span>
+          </button>
         </div>
       </nav>
 
-      {/* Botón flotante carrito — solo móvil */}
       <Link
         href="/carrito"
-        className="md:hidden fixed bottom-20 right-4 z-50 w-12 h-12 bg-violet-600 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform text-white"
+        className={`md:hidden fixed bottom-20 right-4 z-50 w-12 h-12 bg-violet-600 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform text-white ${pathname === "/chat" ? "hidden" : ""}`}
         title="Carrito"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="white" strokeWidth="1.5" fill="white" fillOpacity="0.2" />
-          <path d="M3 6h18" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M16 10a4 4 0 0 1-8 0" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M6 2H3" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M3 2l2.5 11h11L19 6H6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="white" fillOpacity="0.25" />
+          <circle cx="9" cy="20" r="1.5" fill="white" />
+          <circle cx="17" cy="20" r="1.5" fill="white" />
         </svg>
         {cartCount > 0 && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -209,9 +259,28 @@ function BagIcon({ active }: { active: boolean }) {
 function CartIcon({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" strokeWidth={active ? 2 : 1.5} fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
-      <path d="M3 6h18" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" />
-      <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M6 2H3" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" />
+      <path d="M3 2l2.5 11h11L19 6H6" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
+      <circle cx="9" cy="20" r="1.5" fill="currentColor" opacity={active ? 1 : 0.7} />
+      <circle cx="17" cy="20" r="1.5" fill="currentColor" opacity={active ? 1 : 0.7} />
+    </svg>
+  )
+}
+
+function MoreIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="5" cy="12" r="1.5" fill="currentColor" opacity={active ? 1 : 0.6} />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" opacity={active ? 1 : 0.6} />
+      <circle cx="19" cy="12" r="1.5" fill="currentColor" opacity={active ? 1 : 0.6} />
+    </svg>
+  )
+}
+
+function MessageIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth={active ? 2 : 1.5} fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
     </svg>
   )
 }
