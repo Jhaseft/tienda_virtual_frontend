@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
 import Image from "next/image"
 import type { ChatConversation, ChatMessage } from "@/types/chat"
-import { fetchMessages, markAsRead } from "@/app/(explorarTienda)/api/chat.api"
+import { fetchMessages, markAsRead, uploadChatMultimedia } from "@/app/(explorarTienda)/api/chat.api"
 import { useSocket } from "@/contexts/SocketContext"
 import ChatBubble from "./ChatBubble"
 import ChatBackground from "../../ui/ChatBackground"
@@ -15,15 +15,20 @@ interface Props {
   pendingStoreName?: string | null
   pendingStoreLogoUrl?: string | null
   onNewConversation: (conv: ChatConversation) => void
+  onMessageReceived?: (conversationId: string, text: string, createdAt: string, isOwn: boolean) => void
   onBack?: () => void
 }
 
-export default function ChatWindow({ conversation, pendingStoreId, pendingStoreName, pendingStoreLogoUrl, onNewConversation, onBack }: Props) {
+export default function ChatWindow({ conversation, pendingStoreId, pendingStoreName, pendingStoreLogoUrl, onNewConversation, onMessageReceived, onBack }: Props) {
   const { data: session } = useSession()
   const { socket } = useSocket()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState("")
   const [sending, setSending] = useState(false)
+  const [pendingImage, setPendingImage] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const userId = session?.user?.id
 
@@ -44,10 +49,12 @@ export default function ChatWindow({ conversation, pendingStoreId, pendingStoreN
       if (msg.conversationId === relevantId) {
         setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg])
       }
+      onMessageReceived?.(msg.conversationId, msg.text ?? "", msg.createdAt, false)
     }
     // message_sent: confirmación del propio mensaje enviado (incluye conversationId nuevo)
     const onSent = (msg: ChatMessage) => {
       setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg])
+      onMessageReceived?.(msg.conversationId, msg.text ?? "", msg.createdAt, true)
       if (!conversation && pendingStoreId) {
         onNewConversation({
           conversationId: msg.conversationId,
@@ -65,24 +72,57 @@ export default function ChatWindow({ conversation, pendingStoreId, pendingStoreN
       socket.off("new_message", onNew)
       socket.off("message_sent", onSent)
     }
-  }, [socket, conversation, pendingStoreId, pendingStoreName, userId, onNewConversation])
+  }, [socket, conversation, pendingStoreId, pendingStoreName, userId, onNewConversation, onMessageReceived])
 
   // Scroll al último mensaje
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  function handleSend() {
-    if (!text.trim() || !socket) return
-    setSending(true)
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !file.type.startsWith("image/")) return
+    setPendingImage(file)
+    setPreviewUrl(URL.createObjectURL(file))
+    e.target.value = ""
+  }
+
+  function clearImage() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPendingImage(null)
+    setPreviewUrl(null)
+  }
+
+  async function handleSend() {
+    if (!socket) return
     const trimmed = text.trim()
-    if (conversation) {
-      socket.emit("reply_message", { conversationId: conversation.conversationId, text: trimmed })
-    } else if (pendingStoreId) {
-      socket.emit("send_message", { storeId: pendingStoreId, text: trimmed })
+    if (!trimmed && !pendingImage) return
+
+    setUploading(true)
+    setSending(true)
+    try {
+      let multimediaUrl: string | undefined
+      let multimediaPublicId: string | undefined
+
+      if (pendingImage && session?.user?.backendToken) {
+        const uploaded = await uploadChatMultimedia(session.user.backendToken, pendingImage)
+        if (uploaded) {
+          multimediaUrl = uploaded.multimediaUrl
+          multimediaPublicId = uploaded.multimediaPublicId
+        }
+        clearImage()
+      }
+
+      if (conversation) {
+        socket.emit("reply_message", { conversationId: conversation.conversationId, text: trimmed || undefined, multimediaUrl, multimediaPublicId })
+      } else if (pendingStoreId) {
+        socket.emit("send_message", { storeId: pendingStoreId, text: trimmed || undefined, multimediaUrl, multimediaPublicId })
+      }
+      setText("")
+    } finally {
+      setUploading(false)
+      setSending(false)
     }
-    setText("")
-    setSending(false)
   }
 
   function handleKey(e: React.KeyboardEvent) {
@@ -158,22 +198,41 @@ export default function ChatWindow({ conversation, pendingStoreId, pendingStoreN
         <div ref={bottomRef} />
       </ChatBackground>
 
-      <div className="px-4 py-3 border-t border-gray-100 bg-white flex items-end gap-2">
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="Escribe un mensaje..."
-          rows={1}
-          className="flex-1 resize-none rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all max-h-32"
-        />
-        <button
-          onClick={handleSend}
-          disabled={!text.trim() || sending}
-          className="w-10 h-10 rounded-2xl bg-violet-600 hover:bg-violet-700 disabled:opacity-40 flex items-center justify-center transition-colors shrink-0"
-        >
-          <SendIcon />
-        </button>
+      <div className="px-4 py-3 border-t border-gray-100 bg-white">
+        {previewUrl && (
+          <div className="flex items-center gap-2 mb-2 p-2 bg-gray-50 rounded-xl border border-gray-200">
+            <Image src={previewUrl} alt="preview" width={56} height={56} className="w-14 h-14 rounded-lg object-cover shrink-0" />
+            <p className="flex-1 text-xs text-gray-500 truncate">{pendingImage?.name}</p>
+            <button onClick={clearImage} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors shrink-0">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        )}
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        <div className="flex items-end gap-2">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-10 h-10 flex items-center justify-center rounded-2xl border border-gray-200 hover:bg-gray-50 transition-colors shrink-0 disabled:opacity-40"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder="Escribe un mensaje..."
+            rows={1}
+            className="flex-1 resize-none rounded-2xl border border-gray-200 px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all max-h-32"
+          />
+          <button
+            onClick={handleSend}
+            disabled={(!text.trim() && !pendingImage) || sending || uploading}
+            className="w-10 h-10 rounded-2xl bg-violet-600 hover:bg-violet-700 disabled:opacity-40 flex items-center justify-center transition-colors shrink-0"
+          >
+            {uploading ? <SpinnerIcon /> : <SendIcon />}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -184,6 +243,14 @@ function SendIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="22" y1="2" x2="11" y2="13" />
       <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  )
+}
+
+function SpinnerIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
     </svg>
   )
 }

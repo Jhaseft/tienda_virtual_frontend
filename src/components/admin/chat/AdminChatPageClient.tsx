@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function AdminChatPageClient({ initialConversations }: Props) {
-  const [conversations] = useState<ChatConversation[]>(initialConversations)
+  const [conversations, setConversations] = useState<ChatConversation[]>(initialConversations)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [showList, setShowList] = useState(true)
   const [search, setSearch] = useState("")
@@ -25,6 +25,24 @@ export default function AdminChatPageClient({ initialConversations }: Props) {
   function handleSelect(conv: ChatConversation) {
     setActiveId(conv.conversationId)
     setShowList(false)
+    setConversations((prev) =>
+      prev.map((c) => c.conversationId === conv.conversationId ? { ...c, unreadCount: 0 } : c)
+    )
+  }
+
+  function handleMessageReceived(conversationId: string, text: string, createdAt: string, isOwn: boolean) {
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.conversationId !== conversationId) return c
+        const isActive = c.conversationId === activeId
+        return {
+          ...c,
+          lastMessage: text,
+          lastMessageAt: createdAt,
+          unreadCount: isOwn || isActive ? 0 : c.unreadCount + 1,
+        }
+      })
+    )
   }
 
   return (
@@ -55,6 +73,9 @@ export default function AdminChatPageClient({ initialConversations }: Props) {
       <div className={`flex-1 flex flex-col min-h-0 ${showList ? "hidden md:flex" : "flex"}`}>
         <AdminChatWindow
           conversation={activeConversation}
+          onMessageReceived={(conversationId, text, createdAt, isOwn) =>
+            handleMessageReceived(conversationId, text, createdAt, isOwn)
+          }
           onBack={() => setShowList(true)}
         />
       </div>

@@ -3,7 +3,8 @@ export interface ChatMessage {
   conversationId: string
   senderId: string
   senderRole: "CLIENT" | "VENDOR"
-  text: string
+  text: string | null
+  multimediaUrl?: string | null
   read: boolean
   createdAt: string
   storeId?: string

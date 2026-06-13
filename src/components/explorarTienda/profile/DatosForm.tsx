@@ -41,7 +41,6 @@ export default function DatosForm({ user, token }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Header con volver */}
       <div className="flex items-center gap-3">
         <Link
           href="/perfil"
@@ -55,9 +54,7 @@ export default function DatosForm({ user, token }: Props) {
         </div>
       </div>
 
-      {/* Formulario */}
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col gap-5">
-        {/* Email (solo lectura) */}
         <div>
           <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
             Correo electrónico
@@ -70,7 +67,6 @@ export default function DatosForm({ user, token }: Props) {
           />
         </div>
 
-        {/* Nombre */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
             Nombre
@@ -84,7 +80,6 @@ export default function DatosForm({ user, token }: Props) {
           />
         </div>
 
-        {/* Apellido */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
             Apellido
@@ -98,7 +93,6 @@ export default function DatosForm({ user, token }: Props) {
           />
         </div>
 
-        {/* Teléfono */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
             Teléfono
@@ -112,7 +106,6 @@ export default function DatosForm({ user, token }: Props) {
           />
         </div>
 
-        {/* Feedback */}
         {error && (
           <p className="text-sm text-red-500 bg-red-50 px-4 py-3 rounded-xl">{error}</p>
         )}
@@ -122,7 +115,6 @@ export default function DatosForm({ user, token }: Props) {
           </p>
         )}
 
-        {/* Botón guardar */}
         <button
           type="submit"
           disabled={loading}

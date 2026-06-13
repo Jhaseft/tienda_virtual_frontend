@@ -37,6 +37,10 @@ export default function ChatPageClient({
   function handleSelectConversation(conv: ChatConversation) {
     setActiveId(conv.conversationId)
     setShowList(false)
+    // Limpiar badge de no leídos al abrir la conversación
+    setConversations((prev) =>
+      prev.map((c) => c.conversationId === conv.conversationId ? { ...c, unreadCount: 0 } : c)
+    )
   }
 
   function handleNewConversation(conv: ChatConversation) {
@@ -45,6 +49,21 @@ export default function ChatPageClient({
       return exists ? prev : [conv, ...prev]
     })
     setActiveId(conv.conversationId)
+  }
+
+  function handleMessageReceived(conversationId: string, text: string, createdAt: string, isOwn: boolean, currentActiveId: string | null) {
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.conversationId !== conversationId) return c
+        const isActive = c.conversationId === currentActiveId
+        return {
+          ...c,
+          lastMessage: text,
+          lastMessageAt: createdAt,
+          unreadCount: isOwn || isActive ? 0 : c.unreadCount + 1,
+        }
+      })
+    )
   }
 
   return (
@@ -79,6 +98,9 @@ export default function ChatPageClient({
           pendingStoreName={activeConversation ? null : pendingStoreName}
           pendingStoreLogoUrl={activeConversation ? null : pendingStoreLogoUrl}
           onNewConversation={handleNewConversation}
+          onMessageReceived={(conversationId, text, createdAt, isOwn) =>
+            handleMessageReceived(conversationId, text, createdAt, isOwn, activeId)
+          }
           onBack={() => setShowList(true)}
         />
       </div>

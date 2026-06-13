@@ -49,6 +49,21 @@ export async function replyMessage(
   return res.json()
 }
 
+export async function uploadChatMultimedia(
+  token: string,
+  file: File,
+): Promise<{ multimediaUrl: string; multimediaPublicId: string } | null> {
+  const formData = new FormData()
+  formData.append("file", file)
+  const res = await fetch(`${BASE}/upload-multimedia`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  })
+  if (!res.ok) return null
+  return res.json()
+}
+
 export async function markAsRead(token: string, conversationId: string): Promise<void> {
   await fetch(`${BASE}/read`, {
     method: "POST",
